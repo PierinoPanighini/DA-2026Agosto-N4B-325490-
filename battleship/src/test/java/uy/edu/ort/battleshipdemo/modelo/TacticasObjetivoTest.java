@@ -12,7 +12,7 @@ class TacticasObjetivoTest {
         return List.of(new TacticaSecuencial(), new TacticaEspiral(), new TacticaCazaAtaque());
     }
 
-    private Batalla crearBatalla(Tactica seleccionada, int filas, int columnas) {
+    private Batalla crearBatalla(Tactica seleccionada, int filas, int columnas) throws BatallaNavalException {
         Flota propia = new Flota(List.of(new Barco(new TipoBarco("Submarino", 2))));
         Jugador jugador = new Jugador(propia, new Oceano(filas, columnas));
         Maquina maquina = new Maquina(propia.crearFlotaEquivalente(), new Oceano(filas, columnas), seleccionada);

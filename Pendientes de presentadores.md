@@ -18,8 +18,8 @@ Cuatro presentadores para tres casos de uso: el CU02 se divide en sus dos pasos.
 - [x] Consultar los cuadrantes efectivamente ocupados: `Oceano.listarCuadrantesOcupados()`. Devuelve una lista nueva con referencias a los cuadrantes del océano que tienen barco. Incluye los ocupados que hayan recibido disparos; la presentación decidirá cómo dibujarlos.
 - [ ] Completar Fachada para acceder al SistemaBatallas compartido y delegar las consultas y acciones del modelo.
 - [ ] Calcular en Flota su tamaño total y sus partes sanas para el listado del CU01.
-- [ ] Consultar los barcos pendientes de ubicación y comprobar cuándo está lista la preparación.
-- [ ] Resolver cómo identificar el barco seleccionado en la vista, incluso si hay varios del mismo tipo.
+- [x] Consultar los barcos pendientes de ubicación y comprobar cuándo está lista la preparación: `Flota.listarBarcosPendientes()` y `estaCompletamenteUbicada()`.
+- [x] Identificar cada barco mediante `Barco.getId()` y recuperarlo con `Flota.buscarBarco(id)`. El CU02 busca exclusivamente dentro de la flota humana.
 - [ ] Completar la creación de batallas desde la configuración: validaciones, dos flotas independientes y registro al avanzar al despliegue.
 - [ ] Completar la colocación automática de la flota de la máquina y el paso a combate.
 - [ ] Completar la coordinación de rondas, resultados finales y eventos del modelo.
@@ -51,6 +51,8 @@ Cuatro presentadores para tres casos de uso: el CU02 se divide en sus dos pasos.
 - [ ] Mostrar barcos pendientes de mayor a menor longitud y seleccionar el primero.
 - [ ] Usar orientación horizontal inicialmente y mantener la selección de orientación de la vista.
 - [ ] Solicitar la colocación mediante Fachada, identificando batalla, barco, proa y orientación.
+- [ ] Conectar la vista con `POST /cu02/ubicarBarco`: enviar `idBarco`, `coordenadaVertical`, `coordenadaHorizontal` y `orientacion`. El componente original solo envía las coordenadas; la integración de la vista debe agregar selección y orientación sin modificar las bibliotecas.
+- [ ] Registrar los handlers `barcosDisponibles` y `mostrarBarcoUbicado`: reciben `BarcoDto` con ID, nombre, tamaño y cuadrantes (`ValorDto`); dibujar cada cuadrante con `mostrarAguasPropias`.
 - [ ] Ante errores de colocación, mostrar el mensaje y conservar la representación válida del tablero.
 - [ ] Después de una colocación válida, actualizar barcos pendientes, selección y leyenda de acción.
 - [ ] Mostrar Batalla preparada cuando no queden barcos pendientes.
