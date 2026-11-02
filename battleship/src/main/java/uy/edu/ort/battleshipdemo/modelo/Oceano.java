@@ -33,15 +33,16 @@ public class Oceano {
         return columnas;
     }
 
-    public Cuadrante getCuadrante(int fila, int columna) {
+    public Cuadrante getCuadrante (int fila, int columna) throws BatallaNavalException {
         if (!estaDentro(fila, columna)) {
-            throw new IllegalArgumentException("Las coordenadas estan fuera del oceano.");
+            throw new BatallaNavalException("Las coordenadas estan fuera del oceano.");//
+            // cambiè el if para usar el metodo estaDentro
         }
 
         return cuadrantes[fila][columna];
     }
 
-    public synchronized List<Cuadrante> listarCuadrantesOcupados() {
+    public List<Cuadrante> listarCuadrantesOcupados() throws BatallaNavalException {
         List<Cuadrante> ocupados = new ArrayList<>();
         for (int fila = 0; fila < filas; fila++) {
             for (int columna = 0; columna < columnas; columna++) {
@@ -59,7 +60,7 @@ public class Oceano {
     }
 
     // Se valida toda la ubicacion antes de modificar el barco o el tablero.
-    public synchronized void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
+    public void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
             throws BatallaNavalException {
         validarSolicitud(barco, proa, orientacion);
         List<Cuadrante> candidatos = calcularCuadrantes(barco, proa, orientacion);
@@ -88,7 +89,7 @@ public class Oceano {
         int fila = proa.getFila();
         int columna = proa.getColumna();
         if (!estaDentro(fila, columna) || getCuadrante(fila, columna) != proa) {
-            throw new BatallaNavalException("La proa no pertenece a este oceano.");
+            throw new BatallaNavalException("La proa no está dentro de este oceano.");
         }
     }
 
@@ -130,7 +131,7 @@ public class Oceano {
                         if (estaDentro(filaVecina, columnaVecina)
                                 && getCuadrante(filaVecina, columnaVecina).estaOcupado()) {
                             throw new BatallaNavalException(
-                                    "Debe haber al menos un cuadrante de agua entre los barcos, tambien en diagonal.");
+                                    "Debe haber al menos un cuadrante de agua entre los barcos, incluso en diagonal.");
                         }
                     }
 

@@ -193,7 +193,7 @@ class DespliegueMaquinaTest {
                 batalla.getOceanoJugador().getCuadrante(3, 0), Orientacion.VERTICAL);
     }
 
-    private List<Cuadrante> todosLosCuadrantes(Oceano oceano) {
+    private List<Cuadrante> todosLosCuadrantes(Oceano oceano) throws BatallaNavalException {
         List<Cuadrante> cuadrantes = new ArrayList<>();
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
@@ -203,7 +203,7 @@ class DespliegueMaquinaTest {
         return cuadrantes;
     }
 
-    private void verificarDistribucion(Maquina maquina) {
+    private void verificarDistribucion(Maquina maquina) throws BatallaNavalException {
         Oceano oceano = maquina.getOceano();
         assertTrue(maquina.getFlota().estaCompletamenteUbicada());
         Set<Cuadrante> ocupados = new HashSet<>();

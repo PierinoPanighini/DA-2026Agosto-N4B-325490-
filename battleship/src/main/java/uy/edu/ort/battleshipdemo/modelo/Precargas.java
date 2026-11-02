@@ -105,7 +105,7 @@ public class Precargas {
         return true;
     }
 
-    private static Cuadrante buscarAguaLibre(Oceano oceano) {
+    private static Cuadrante buscarAguaLibre(Oceano oceano) throws BatallaNavalException {
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
                 Cuadrante cuadrante = oceano.getCuadrante(fila, columna);

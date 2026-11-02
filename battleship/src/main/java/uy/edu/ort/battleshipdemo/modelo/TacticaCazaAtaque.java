@@ -17,7 +17,7 @@ public class TacticaCazaAtaque extends Tactica {
         this.azar = new Random();
     }
 
-    @Override 
+    @Override
     public Tactica crearNueva() {
         return new TacticaCazaAtaque();
     } // nueva instancia de la misma clase de la tactica.
@@ -48,7 +48,7 @@ public class TacticaCazaAtaque extends Tactica {
         }
     }
 
-    private Cuadrante buscarVecinoLibre(Oceano oceano) {
+    private Cuadrante buscarVecinoLibre(Oceano oceano) throws BatallaNavalException {
         Cuadrante primero = impactos.get(0);
         if (impactos.size() == 1) {
             return vecinaLibre(oceano, primero);
@@ -80,7 +80,7 @@ public class TacticaCazaAtaque extends Tactica {
     }
 
     // Con un solo impacto no se sabe la orientación: se prueban las 4 vecinas.
-    private Cuadrante vecinaLibre(Oceano oceano, Cuadrante impacto) {
+    private Cuadrante vecinaLibre(Oceano oceano, Cuadrante impacto) throws BatallaNavalException {
         int f = impacto.getFila();
         int c = impacto.getColumna();
         Cuadrante vecino = libre(oceano, f + 1, c);
@@ -105,7 +105,7 @@ public class TacticaCazaAtaque extends Tactica {
     }
 
     // Devuelve el cuadrante si está dentro y sin disparar; si no null.
-    private Cuadrante libre(Oceano oceano, int fila, int columna) {
+    private Cuadrante libre(Oceano oceano, int fila, int columna) throws BatallaNavalException {
         if (oceano.estaDentro(fila, columna) && !oceano.getCuadrante(fila, columna).isDisparado()) { // dentro y no
                                                                                                      // disparado
             return oceano.getCuadrante(fila, columna);

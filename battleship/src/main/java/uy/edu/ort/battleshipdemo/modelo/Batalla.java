@@ -25,12 +25,6 @@ public class Batalla {
     private List<Barco> bajasAmigas;
 
     public Batalla(String lugar, Jugador jugador, Maquina maquina) {
-        if (jugador == null || maquina == null) {
-            throw new IllegalArgumentException("La batalla debe tener un jugador y una maquina.");
-        }
-        if (jugador.getFlota() == maquina.getFlota() || jugador.getOceano() == maquina.getOceano()) {
-            throw new IllegalArgumentException("Los participantes deben tener flotas y oceanos independientes.");
-        }
         maquina.getTactica().configurarObjetivo(jugador.getOceano());
         this.id = generarId();
         this.lugar = lugar;
@@ -42,7 +36,17 @@ public class Batalla {
         this.bajasAmigas = new ArrayList<>();
     }
 
-    private static synchronized int generarId() {
+
+    public void validarBatalla (){ //FIXME: Chequear que tan necesarias son estas validaciones
+        if (this.jugador == null || this.maquina == null) {
+            throw new IllegalArgumentException("La batalla debe tener un jugador y una maquina.");
+        }
+        if (this.jugador.getFlota() == this.maquina.getFlota() || this.jugador.getOceano() == this.maquina.getOceano()) {
+            throw new IllegalArgumentException("Los participantes deben tener flotas y oceanos independientes.");
+        }
+    }
+
+    private static int generarId() {
         return proximoId++;
     }
 
@@ -52,16 +56,16 @@ public class Batalla {
         TERMINADA
     }
 
-    public synchronized void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
+    public void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
             throws BatallaNavalException {
         estado.colocarBarco(barco, proa, orientacion);
     }
 
-    public synchronized void colocarFlotaMaquina() throws BatallaNavalException {
+    public void colocarFlotaMaquina() throws BatallaNavalException {
         estado.colocarFlotaMaquina();
     }
 
-    public synchronized void validarFlotasColocadas() throws BatallaNavalException {
+    public void validarFlotasColocadas() throws BatallaNavalException {
         if (!jugador.getFlota().estaCompletamenteUbicada()) {
             throw new BatallaNavalException("Faltan barcos por colocar en la flota del jugador.");
         }
@@ -71,37 +75,33 @@ public class Batalla {
     }
 
     // La solicitud debe traer el numero de ronda que estaba mostrando la vista.
-    public synchronized void generarDisparo(int fila, int columna, int numeroRondaEsperado)
+    public void generarDisparo(int fila, int columna, int numeroRondaEsperado)
             throws BatallaNavalException {
-        if (numeroRondaEsperado != rondas.size() + 1) {
-            throw new BatallaNavalException(
-                    "La ronda indicada ya no corresponde. Actualice la informacion de la batalla.");
-        }
         estado.disparar(fila, columna);
     }
 
-    public synchronized int getNumeroProximaRonda() {
+    public int getNumeroProximaRonda() {
         return rondas.size() + 1;
     }
 
-    public synchronized boolean fueGanada() {
+    public boolean fueGanada() {
         return estado.getEstado() == Estados.TERMINADA
                 && bajasEnemigas.size() > bajasAmigas.size();
     }
 
-    public synchronized boolean fuePerdida() {
+    public boolean fuePerdida() {
         return estado.getEstado() == Estados.TERMINADA
                 && bajasAmigas.size() > bajasEnemigas.size();
     }
 
-    public synchronized void iniciarCombate()
+    public void iniciarCombate()
             throws BatallaNavalException {
         estado.iniciarCombate();
     }
 
     // SETTERS
 
-    protected synchronized void setEstado(EstadoBatalla estado) {
+    protected void setEstado(EstadoBatalla estado) {
         this.estado = estado;
     }
 
@@ -156,6 +156,10 @@ public class Batalla {
 
     public List<Barco> getBajasAmigas() {
         return bajasAmigas;
+    }
+
+    public boolean flotaAmigaUbicada(){
+        return this.getJugador().flotaUbicada();
     }
 
 }

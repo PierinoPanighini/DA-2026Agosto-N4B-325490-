@@ -87,7 +87,7 @@ class PrecargasTest {
         }
     }
 
-    private void verificarFlota(Flota flota, Oceano oceano, boolean preparacion) {
+    private void verificarFlota(Flota flota, Oceano oceano, boolean preparacion) throws BatallaNavalException {
         assertTrue(oceano.getFilas() >= 6 && oceano.getFilas() <= 12);
         assertTrue(oceano.getColumnas() >= 6 && oceano.getColumnas() <= 12);
         int partes = 0;
@@ -164,7 +164,7 @@ class PrecargasTest {
     }
 
     private void verificarDisparo(Disparo disparo, Oceano oceano, Set<Cuadrante> tiros,
-            Map<Barco, Integer> impactos, List<Barco> bajas) {
+            Map<Barco, Integer> impactos, List<Barco> bajas) throws BatallaNavalException {
         assertNotNull(disparo);
         Cuadrante cuadrante = disparo.getCuadrante();
         assertSame(oceano.getCuadrante(cuadrante.getFila(), cuadrante.getColumna()), cuadrante);
@@ -180,7 +180,7 @@ class PrecargasTest {
         assertEquals(esperado, disparo.getResultado());
     }
 
-    private void verificarMarcas(Oceano oceano, Set<Cuadrante> tiros) {
+    private void verificarMarcas(Oceano oceano, Set<Cuadrante> tiros) throws BatallaNavalException {
         for (int f = 0; f < oceano.getFilas(); f++) {
             for (int c = 0; c < oceano.getColumnas(); c++) {
                 Cuadrante cuadrante = oceano.getCuadrante(f, c);
@@ -197,7 +197,7 @@ class PrecargasTest {
         }
     }
 
-    private void verificarConsultaDeOcupacion(Flota flota, Oceano oceano) {
+    private void verificarConsultaDeOcupacion(Flota flota, Oceano oceano) throws BatallaNavalException {
         Set<Cuadrante> esperados = new HashSet<>();
         for (Barco barco : flota.getBarcos()) {
             esperados.addAll(barco.getCuadrantes());

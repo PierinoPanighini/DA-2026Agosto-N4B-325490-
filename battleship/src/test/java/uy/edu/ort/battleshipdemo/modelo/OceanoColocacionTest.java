@@ -257,7 +257,7 @@ class OceanoColocacionTest {
         return new Batalla("Prueba", jugador, maquina);
     }
 
-    private List<Barco> ocupacion(Oceano oceano) {
+    private List<Barco> ocupacion(Oceano oceano) throws BatallaNavalException {
         List<Barco> barcos = new ArrayList<>();
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {

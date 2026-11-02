@@ -1,6 +1,7 @@
 package uy.edu.ort.battleshipdemo.modelo;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class Flota {
@@ -30,7 +31,29 @@ public class Flota {
         return new ArrayList<>(barcos);
     }
 
-    public Flota crearFlotaEquivalente() throws BatallaNavalException {
+
+
+    public Barco buscarBarco(int id) {
+        for (Barco barco : barcos) {
+            if (barco.getId() == id) {
+                return barco;
+            }
+        }
+        return null;
+    }
+
+    public List<Barco> listarBarcosPendientes() {
+        List<Barco> pendientes = new ArrayList<>();
+        for (Barco barco : barcos) {
+            if (!barco.estaUbicado()) {
+                pendientes.add(barco);
+            }
+        }
+        pendientes.sort(Comparator.comparingInt(Barco::getTamanio).reversed());
+        return pendientes;
+    }
+
+    public Flota crearFlotaEquivalente throws BatallaNavalException() {
         List<Barco> equivalentes = new ArrayList<>();
         for (Barco barco : barcos) {
             equivalentes.add(new Barco(barco.getTipoBarco()));

@@ -286,7 +286,7 @@ class BatallaEstadosTest {
         }
     }
 
-    private Cuadrante buscarAgua(Oceano oceano) {
+    private Cuadrante buscarAgua(Oceano oceano) throws BatallaNavalException {
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
                 Cuadrante cuadrante = oceano.getCuadrante(fila, columna);
@@ -331,7 +331,7 @@ class BatallaEstadosTest {
         return batalla;
     }
 
-    private int contarDisparados(Oceano oceano) {
+    private int contarDisparados(Oceano oceano) throws BatallaNavalException {
         int cantidad = 0;
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
