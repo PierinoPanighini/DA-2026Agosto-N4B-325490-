@@ -14,7 +14,7 @@ public class Maquina {
     private Oceano oceano;
     private Tactica tactica;
 
-    public Maquina(Flota flota, Oceano oceano, Tactica tactica) {
+    public Maquina(Flota flota, Oceano oceano, Tactica tactica){
         if (flota == null || oceano == null || tactica == null) {
             throw new IllegalArgumentException("La maquina debe tener flota, oceano y tactica.");
         }
@@ -61,7 +61,7 @@ public class Maquina {
         }
     }
 
-    private List<Barco> probarDistribucion(List<Barco> barcos, Random azar) {
+    private List<Barco> probarDistribucion(List<Barco> barcos, Random azar) throws BatallaNavalException {
         Oceano temporal = new Oceano(oceano.getFilas(), oceano.getColumnas());
         List<Barco> distribucion = new ArrayList<>();
         for (Barco original : barcos) {

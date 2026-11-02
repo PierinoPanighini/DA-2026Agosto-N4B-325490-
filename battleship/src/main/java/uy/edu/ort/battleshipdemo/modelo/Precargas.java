@@ -52,7 +52,7 @@ public class Precargas {
     }
 
     private static Batalla crearBatalla(String lugar, int filas, int columnas, Tactica tactica,
-            TipoBarco crucero, TipoBarco submarino) {
+            TipoBarco crucero, TipoBarco submarino) throws BatallaNavalException {
         Flota flotaJugador = new Flota(List.of(new Barco(crucero), new Barco(submarino)));
         Jugador jugador = new Jugador(flotaJugador, new Oceano(filas, columnas));
         Maquina maquina = new Maquina(flotaJugador.crearFlotaEquivalente(),

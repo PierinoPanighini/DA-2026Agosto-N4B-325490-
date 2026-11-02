@@ -214,8 +214,8 @@ class PrecargasTest {
 
     @Test
     void constructorDeFlotaCopiaLaListaYLaEquivalenteNoComparteBarcos() throws Exception {
-        assertThrows(IllegalArgumentException.class, () -> new Flota(List.of()));
-        assertThrows(IllegalArgumentException.class, () -> new Flota(null));
+        assertThrows(BatallaNavalException.class, () -> new Flota(List.of()));
+        assertThrows(BatallaNavalException.class, () -> new Flota(null));
         Barco barco = new Barco(new TipoBarco("Submarino", 2));
         List<Barco> entrada = new ArrayList<>(List.of(barco));
         Flota original = new Flota(entrada);

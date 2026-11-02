@@ -7,9 +7,9 @@ public class Flota {
 
     private List<Barco> barcos;
 
-    public Flota(List<Barco> barcos) {
+    public Flota(List<Barco> barcos) throws BatallaNavalException {
         if (barcos == null || barcos.isEmpty()) {
-            throw new IllegalArgumentException("La flota debe contener al menos un barco.");
+            throw new BatallaNavalException("La flota debe contener al menos un barco.");
         }
         for (Barco barco : barcos) {
             if (barco == null) {
@@ -30,7 +30,7 @@ public class Flota {
         return new ArrayList<>(barcos);
     }
 
-    public Flota crearFlotaEquivalente() {
+    public Flota crearFlotaEquivalente() throws BatallaNavalException {
         List<Barco> equivalentes = new ArrayList<>();
         for (Barco barco : barcos) {
             equivalentes.add(new Barco(barco.getTipoBarco()));

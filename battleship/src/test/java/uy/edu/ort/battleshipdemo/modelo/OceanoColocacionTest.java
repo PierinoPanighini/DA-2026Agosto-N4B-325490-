@@ -47,7 +47,7 @@ class OceanoColocacionTest {
     }
 
     @Test
-    void rechazaSalidasDelTableroSinAplicarLasPartesQueEntraban() {
+    void rechazaSalidasDelTableroSinAplicarLasPartesQueEntraban() throws BatallaNavalException {
         for (Orientacion orientacion : Orientacion.values()) {
             Oceano oceano = new Oceano(6, 8);
             Barco barco = crearBarco(3);
@@ -120,7 +120,7 @@ class OceanoColocacionTest {
     }
 
     @Test
-    void rechazaProasAjenasAunqueTenganCoordenadasValidas() {
+    void rechazaProasAjenasAunqueTenganCoordenadasValidas() throws BatallaNavalException {
         Oceano oceano = new Oceano(6, 8);
         Oceano otro = new Oceano(6, 8);
         Cuadrante[] proas = {otro.getCuadrante(2, 2), new Cuadrante(2, 2),
@@ -138,7 +138,7 @@ class OceanoColocacionTest {
     }
 
     @Test
-    void rechazaSolicitudesIncompletasYBarcosSinTamanioValido() {
+    void rechazaSolicitudesIncompletasYBarcosSinTamanioValido() throws BatallaNavalException {
         Oceano oceano = new Oceano(6, 8);
         Cuadrante proa = oceano.getCuadrante(2, 2);
         Barco barco = crearBarco(3);
@@ -249,7 +249,7 @@ class OceanoColocacionTest {
         }
     }
 
-    private Batalla crearBatalla() {
+    private Batalla crearBatalla() throws BatallaNavalException {
         Flota propia = new Flota(List.of(crearBarco(3)));
         Jugador jugador = new Jugador(propia, new Oceano(6, 8));
         Maquina maquina = new Maquina(propia.crearFlotaEquivalente(), new Oceano(6, 8),

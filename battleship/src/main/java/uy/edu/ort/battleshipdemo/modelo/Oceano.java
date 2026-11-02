@@ -9,10 +9,9 @@ public class Oceano {
     private int columnas;
     private Cuadrante[][] cuadrantes;
 
-    public Oceano(int filas, int columnas) {
+    public Oceano(int filas, int columnas) throws BatallaNavalException {
         if (filas < 6 || filas > 12 || columnas < 6 || columnas > 12) {
-            throw new IllegalArgumentException("Las filas y columnas deben estar entre 6 y 12."); // FIXME: CHEQUEAR
-                                                                                                  // EXCEPCION
+            throw new BatallaNavalException("Las filas y columnas deben estar entre 6 y 12.");
         }
 
         this.filas = filas;
@@ -36,9 +35,7 @@ public class Oceano {
 
     public Cuadrante getCuadrante(int fila, int columna) {
         if (!estaDentro(fila, columna)) {
-            throw new IllegalArgumentException("Las coordenadas estan fuera del oceano.");//
-            // cambiè el if para usar el metodo estaDentro
-            // FIXME: CHEQUEAR EXCEPCION
+            throw new IllegalArgumentException("Las coordenadas estan fuera del oceano.");
         }
 
         return cuadrantes[fila][columna];
