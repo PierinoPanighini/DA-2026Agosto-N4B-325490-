@@ -89,7 +89,7 @@ class DespliegueMaquinaTest {
     }
 
     @Test
-    void unaFlotaImposibleAgotaLosIntentosSinDejarColocacionesParciales() {
+    void unaFlotaImposibleAgotaLosIntentosSinDejarColocacionesParciales() throws BatallaNavalException {
         Maquina maquina = new Maquina(crearFlota(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
                 new Oceano(6, 6), new TacticaSecuencial());
         // Con separacion incluso diagonal solo entran nueve barcos de una celda en 6 x 6.
@@ -121,7 +121,7 @@ class DespliegueMaquinaTest {
     }
 
     @Test
-    void barcosInvalidosNoModificanElOceanoNiLaFlota() {
+    void barcosInvalidosNoModificanElOceanoNiLaFlota() throws BatallaNavalException {
         for (Barco invalido : List.of(new Barco(null), new Barco(new TipoBarco("Invalido", 0)),
                 new Barco(new TipoBarco("Demasiado largo", 13)))) {
             Maquina maquina = new Maquina(new Flota(List.of(invalido)), new Oceano(6, 6),
@@ -133,7 +133,7 @@ class DespliegueMaquinaTest {
     }
 
     @Test
-    void combateYTerminadaRechazanElDespliegueDeLaMaquina() {
+    void combateYTerminadaRechazanElDespliegueDeLaMaquina() throws BatallaNavalException {
         Batalla batalla = crearBatalla();
         for (EstadoBatalla estado : List.of(new EstadoEnCombate(batalla), new EstadoTerminada(batalla))) {
             batalla.setEstado(estado);
@@ -178,7 +178,7 @@ class DespliegueMaquinaTest {
         return new Flota(barcos);
     }
 
-    private Batalla crearBatalla() {
+    private Batalla crearBatalla() throws BatallaNavalException {
         Flota propia = crearFlota(3, 2);
         Jugador jugador = new Jugador(propia, new Oceano(6, 6));
         Maquina maquina = new Maquina(propia.crearFlotaEquivalente(), new Oceano(6, 6),
@@ -193,7 +193,7 @@ class DespliegueMaquinaTest {
                 batalla.getOceanoJugador().getCuadrante(3, 0), Orientacion.VERTICAL);
     }
 
-    private List<Cuadrante> todosLosCuadrantes(Oceano oceano) {
+    private List<Cuadrante> todosLosCuadrantes(Oceano oceano) throws BatallaNavalException {
         List<Cuadrante> cuadrantes = new ArrayList<>();
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
@@ -203,7 +203,7 @@ class DespliegueMaquinaTest {
         return cuadrantes;
     }
 
-    private void verificarDistribucion(Maquina maquina) {
+    private void verificarDistribucion(Maquina maquina) throws BatallaNavalException {
         Oceano oceano = maquina.getOceano();
         assertTrue(maquina.getFlota().estaCompletamenteUbicada());
         Set<Cuadrante> ocupados = new HashSet<>();

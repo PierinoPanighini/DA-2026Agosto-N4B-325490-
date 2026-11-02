@@ -8,7 +8,8 @@ Su nombre y tamaño los conoce su TipoBarco.
  */
 public class Barco {
 
-    //FIXME: LE PONEMOS ID??
+    private static int proximoId = 1;
+    private final int id;
 
     private TipoBarco tipoBarco;
 
@@ -18,8 +19,17 @@ public class Barco {
     private List<Cuadrante> cuadrantes;
 
     public Barco(TipoBarco tipoBarco) {
+        this.id = generarId();
         this.tipoBarco = tipoBarco;
         this.cuadrantes = new ArrayList<>();
+    }
+
+    private static synchronized int generarId() {
+        return proximoId++;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public TipoBarco getTipoBarco() {

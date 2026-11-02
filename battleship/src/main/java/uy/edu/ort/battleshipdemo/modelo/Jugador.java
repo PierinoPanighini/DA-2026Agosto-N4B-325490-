@@ -20,4 +20,8 @@ public class Jugador {
     public Oceano getOceano() {
         return oceano;
     }
+
+    public boolean flotaUbicada(){
+        return this.getFlota().estaCompletamenteUbicada();
+    }
 }

@@ -61,7 +61,7 @@ public class Maquina {
         }
     }
 
-    private List<Barco> probarDistribucion(List<Barco> barcos, Random azar) {
+    private List<Barco> probarDistribucion(List<Barco> barcos, Random azar) throws BatallaNavalException {
         Oceano temporal = new Oceano(oceano.getFilas(), oceano.getColumnas());
         List<Barco> distribucion = new ArrayList<>();
         for (Barco original : barcos) {

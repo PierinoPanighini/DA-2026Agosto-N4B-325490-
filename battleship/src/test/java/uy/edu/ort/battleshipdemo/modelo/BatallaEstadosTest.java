@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class BatallaEstadosTest {
 
     @Test
-    void preparacionRechazaDisparosSinAlterarElTableroNiElHistorial() {
+    void preparacionRechazaDisparosSinAlterarElTableroNiElHistorial() throws BatallaNavalException {
         Batalla batalla = crearBatalla();
         assertEquals(Batalla.Estados.EN_PREPARACION, batalla.getEstado());
         assertFalse(batalla.fueGanada());
@@ -286,7 +286,7 @@ class BatallaEstadosTest {
         }
     }
 
-    private Cuadrante buscarAgua(Oceano oceano) {
+    private Cuadrante buscarAgua(Oceano oceano) throws BatallaNavalException {
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
                 Cuadrante cuadrante = oceano.getCuadrante(fila, columna);
@@ -310,7 +310,7 @@ class BatallaEstadosTest {
         }
     }
 
-    private Batalla crearBatalla() {
+    private Batalla crearBatalla() throws BatallaNavalException {
         TipoBarco tipo = new TipoBarco("Destructor", 1);
         Flota propia = new Flota(List.of(new Barco(tipo), new Barco(tipo)));
         Jugador jugador = new Jugador(propia, new Oceano(6, 6));
@@ -331,7 +331,7 @@ class BatallaEstadosTest {
         return batalla;
     }
 
-    private int contarDisparados(Oceano oceano) {
+    private int contarDisparados(Oceano oceano) throws BatallaNavalException {
         int cantidad = 0;
         for (int fila = 0; fila < oceano.getFilas(); fila++) {
             for (int columna = 0; columna < oceano.getColumnas(); columna++) {
