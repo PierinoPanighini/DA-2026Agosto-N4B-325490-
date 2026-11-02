@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sala de operaciones</title>
+</head>
+<body>
+  <h1>Sala de operaciones</h1>
+
+  <p>Ganadas: <span id="ganadas"></span></p>
+  <p>Perdidas: <span id="perdidas"></span></p>
+  <p>Éxito: <span id="exito"></span></p>
+
+  <div id="tablaBatallas"></div>
+
+  <script src="/utilesVista.js"></script>
+  <script type="module">
+    import CommandDispatcher from '/CommandDispatcher.js';
+
+    const viewConfig = CommandDispatcher.registerView('Sala', {
+      urlInicio: '/cu01/inicializar',
+      onException: (msg) => mostrarMensaje(msg)
+    });
+
+    viewConfig.handler('sala', (sala) => {
+      document.getElementById('ganadas').textContent = sala.ganadas;
+      document.getElementById('perdidas').textContent = sala.perdidas;
+      document.getElementById('exito').textContent = sala.exito;
+      document.getElementById('tablaBatallas').innerHTML = crearTablaDesdeJson(sala.batallas);
+    });
+
+    CommandDispatcher.startView(viewConfig);
+  </script>
+</body>
+</html>

@@ -54,15 +54,10 @@ public class SistemaBatallas {
     }
 
     public double calcularExitoCampania() {
-        int ganadas = contarBatallasGanadas();
-        int perdidas = contarBatallasPerdidas();
-        int terminadas = ganadas + perdidas;
-
-        if (terminadas == 0) {
+        if(batallas.size() == 0) {
             return 0.0;
         }
-
-        return ganadas * 100.0 / terminadas;
+        return contarBatallasGanadas()*100.0 / batallas.size();
     }
 
     // Tipos barco
