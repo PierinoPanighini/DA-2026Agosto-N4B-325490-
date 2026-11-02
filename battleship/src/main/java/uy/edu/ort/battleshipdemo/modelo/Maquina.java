@@ -14,7 +14,7 @@ public class Maquina {
     private Oceano oceano;
     private Tactica tactica;
 
-    public Maquina(Flota flota, Oceano oceano, Tactica tactica) {
+    public Maquina(Flota flota, Oceano oceano, Tactica tactica){
         if (flota == null || oceano == null || tactica == null) {
             throw new IllegalArgumentException("La maquina debe tener flota, oceano y tactica.");
         }

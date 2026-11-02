@@ -11,13 +11,9 @@ import uy.edu.ort.battleshipdemo.modelo.Fachada;
 @RequestMapping("/cu01")
 public class PresentadorCU01 {
 
-    // TODO: conectar con la instancia compartida de Fachada cuando este configurada.
-    private Fachada fachada;
-
     @PostMapping("/inicializar")
     public Commands inicializar() {
-        // TODO: preparar los comandos del listado y las estadisticas.
-        return Commands.create();
+        return Commands.create(sala());
     }
 
     @PostMapping("/iniciarNuevaBatalla")
@@ -31,4 +27,9 @@ public class PresentadorCU01 {
         // TODO: buscar la batalla y preparar los comandos segun su estado.
         return Commands.create();
     }
+
+    private Command sala() {
+        return new Command("sala", new SalaDto(Fachada.getInstancia()));
+    }
+
 }

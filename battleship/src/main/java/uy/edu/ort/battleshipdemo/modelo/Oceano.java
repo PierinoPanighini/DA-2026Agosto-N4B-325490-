@@ -12,7 +12,6 @@ public class Oceano {
     public Oceano(int filas, int columnas) throws BatallaNavalException {
         if (filas < 6 || filas > 12 || columnas < 6 || columnas > 12) {
             throw new BatallaNavalException("Las filas y columnas deben estar entre 6 y 12.");
-
         }
 
         this.filas = filas;

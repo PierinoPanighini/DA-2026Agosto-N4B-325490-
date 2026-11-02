@@ -170,7 +170,7 @@ class DespliegueMaquinaTest {
         }
     }
 
-    private Flota crearFlota(int... tamanios) {
+    private Flota crearFlota(int... tamanios) throws BatallaNavalException {
         List<Barco> barcos = new ArrayList<>();
         for (int tamanio : tamanios) {
             barcos.add(new Barco(new TipoBarco("Prueba", tamanio)));
