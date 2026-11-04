@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import modelo.Barco;
-import modelo.Batalla;
 
 
 public class SistemaBatallas {
@@ -211,10 +209,11 @@ public class SistemaBatallas {
     }
 
     public double calcularExitoCampania() {
-        if(batallas.size() == 0) {
+        int terminadas = contarBatallasGanadas() + contarBatallasPerdidas();
+        if (terminadas == 0) {
             return 0.0;
         }
-        return contarBatallasGanadas()*100.0 / batallas.size();
+        return contarBatallasGanadas() * 100.0 / terminadas;
     }
 
 

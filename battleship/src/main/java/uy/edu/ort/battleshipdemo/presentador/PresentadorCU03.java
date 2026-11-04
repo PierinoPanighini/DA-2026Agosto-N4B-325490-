@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import modelo.Barco;
-import modelo.Batalla;
-import modelo.Cuadrante;
-import modelo.Disparo;
-import modelo.ResultadoDisparo;
+import uy.edu.ort.battleshipdemo.modelo.Barco;
+import uy.edu.ort.battleshipdemo.modelo.Batalla;
+import uy.edu.ort.battleshipdemo.modelo.Cuadrante;
+import uy.edu.ort.battleshipdemo.modelo.Disparo;
+import uy.edu.ort.battleshipdemo.modelo.ResultadoDisparo;
 import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
 import uy.edu.ort.battleshipdemo.modelo.Ronda;
@@ -23,7 +23,7 @@ public class PresentadorCU03 {
 
     private Fachada fachada;
 
-    public PresentadorCU02(Fachada fachada) {
+    public PresentadorCU03(Fachada fachada) {
         this.fachada = fachada;
     }
 
@@ -37,10 +37,10 @@ public class PresentadorCU03 {
     public Commands disparar(
             @RequestParam("idBatalla") int idBatalla,
             @RequestParam("coordenadaVertical") int fila,
-            @RequestParam("coordenadaHorizontal") int columna) {
+            @RequestParam("coordenadaHorizontal") int columna, @RequestParam("numeroRonda") int numeroRondaEsperado) {
 
         try {
-            Batalla batalla = fachada.disparar(idBatalla, fila, columna);
+            Batalla batalla = fachada.disparar(idBatalla, fila, columna, numeroRondaEsperado);
 
             List<Ronda> rondas = batalla.getRondas();
             Ronda ronda = rondas.get(rondas.size() - 1);

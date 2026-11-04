@@ -53,7 +53,7 @@ public class Flota {
         return pendientes;
     }
 
-    public Flota crearFlotaEquivalente throws BatallaNavalException() {
+    public Flota crearFlotaEquivalente() throws BatallaNavalException {
         List<Barco> equivalentes = new ArrayList<>();
         for (Barco barco : barcos) {
             equivalentes.add(new Barco(barco.getTipoBarco()));
