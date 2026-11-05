@@ -257,9 +257,8 @@
 
     vista.handler('mensaje', mostrarMensaje);
 
-    // Cuando exista la vista del CU03, este comando va a abrir esa pantalla.
-    vista.handler('iniciarBatalla', () => {
-      mostrarMensaje('El combate comenzó.');
+    vista.handler('iniciarBatalla', (id) => {
+      window.location.href = '/batalla.html?batalla=' + id;
     });
 
     CommandDispatcher.startView(vista);

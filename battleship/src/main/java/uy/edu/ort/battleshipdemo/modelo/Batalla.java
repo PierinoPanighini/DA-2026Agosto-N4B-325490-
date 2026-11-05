@@ -13,7 +13,7 @@ import uy.edu.ort.battleshipdemo.modelo.Tactica;
 
 public class Batalla {
 
-    private static int proximoId = 1;
+    private static  int proximoId = 1;
 
     private final int id;
     private String lugar;
@@ -36,17 +36,17 @@ public class Batalla {
         this.bajasAmigas = new ArrayList<>();
     }
 
-
-    public void validarBatalla (){ //FIXME: Chequear que tan necesarias son estas validaciones
+    public void validarBatalla() { // FIXME: Chequear que tan necesarias son estas validaciones
         if (this.jugador == null || this.maquina == null) {
             throw new IllegalArgumentException("La batalla debe tener un jugador y una maquina.");
         }
-        if (this.jugador.getFlota() == this.maquina.getFlota() || this.jugador.getOceano() == this.maquina.getOceano()) {
+        if (this.jugador.getFlota() == this.maquina.getFlota()
+                || this.jugador.getOceano() == this.maquina.getOceano()) {
             throw new IllegalArgumentException("Los participantes deben tener flotas y oceanos independientes.");
         }
     }
 
-    private static int generarId() {
+    private static synchronized int generarId() {
         return proximoId++;
     }
 
@@ -75,11 +75,14 @@ public class Batalla {
     }
 
     // La solicitud debe traer el numero de ronda que estaba mostrando la vista.
-    public void generarDisparo(int fila, int columna, int numeroRondaEsperado)
+    public synchronized  void generarDisparo(int fila, int columna, int numeroRondaEsperado)
             throws BatallaNavalException {
+        if (numeroRondaEsperado != getNumeroProximaRonda()) {
+            throw new BatallaNavalException(
+                    "La ronda indicada ya no corresponde. Actualice la informacion de la batalla.");
+        }
         estado.disparar(fila, columna);
-    }
-
+        }
 
     public int getNumeroProximaRonda() {
         return rondas.size() + 1;
@@ -95,12 +98,12 @@ public class Batalla {
                 && bajasAmigas.size() > bajasEnemigas.size();
     }
 
-        //ESTADO batalla conoce su estado, saber si está en preparación
+    // ESTADO batalla conoce su estado, saber si está en preparación
     public boolean estaEnPreparacion() {
         return estado.getEstado() == Estados.EN_PREPARACION;
     }
 
-    public void iniciarCombate()
+    public synchronized void iniciarCombate()
             throws BatallaNavalException {
         estado.iniciarCombate();
     }
@@ -164,7 +167,7 @@ public class Batalla {
         return bajasAmigas;
     }
 
-    public boolean flotaAmigaUbicada(){
+    public boolean flotaAmigaUbicada() {
         return this.getJugador().flotaUbicada();
     }
 

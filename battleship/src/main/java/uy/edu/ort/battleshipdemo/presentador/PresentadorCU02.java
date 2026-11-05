@@ -155,8 +155,9 @@ public class PresentadorCU02 {
     }
 
     private Command iniciarBatalla() {
-        return new Command("iniciarBatalla", true);
+        return new Command("iniciarBatalla", enPreparacion.getId());
     }
+
 
     private Command mostrarBarcoUbicado(Barco barco) {
         return new Command("mostrarBarcoUbicado", new BarcoDto(barco));

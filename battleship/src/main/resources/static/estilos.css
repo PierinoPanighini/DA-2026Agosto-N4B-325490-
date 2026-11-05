@@ -77,6 +77,10 @@ body::after {
   --imagen-fondo: url("img/flota.webp");
 }
 
+.fondo-combate {
+  --imagen-fondo: url("img/combate.webp");
+}
+
 .contenedor {
   width: 100%;
   max-width: 1200px;
@@ -561,6 +565,92 @@ select {
 
 .leyenda:empty {
   display: none;
+}
+
+/* CU03: encabezado y referencias del tablero */
+.encabezado-batalla {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 32px;
+  margin-bottom: 28px;
+}
+
+.datos-batalla {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 32px;
+  color: var(--texto-tabla);
+  font-size: 18px;
+}
+
+.datos-batalla p {
+  margin: 0;
+}
+
+.datos-batalla strong {
+  color: var(--texto);
+  font-family: var(--letra-titulos);
+  font-size: 24px;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.dato-estado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-batalla #tablero {
+  min-height: 520px;
+}
+
+.referencias {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 28px;
+  margin: 16px 0 0;
+  padding: 0;
+  color: var(--texto-tabla);
+  list-style: none;
+}
+
+.referencias li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muestra {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+
+.muestra-barco {
+  background: var(--barco);
+}
+
+.muestra-agua {
+  background: var(--agua);
+}
+
+.muestra-agua::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--texto);
+}
+
+.muestra-impacto {
+  background: var(--impacto);
 }
 
 /* Tablero: se cambia solo la apariencia; BattleShipBoard.js no se modifica */

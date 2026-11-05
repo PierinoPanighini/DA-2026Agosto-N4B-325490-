@@ -139,4 +139,19 @@ public class Oceano {
             }
         }
     }
+
+    /*CU03 */
+    public List<Cuadrante> listarCuadrantesDisparados() throws BatallaNavalException {
+    List<Cuadrante> disparados = new ArrayList<>();
+    for (int fila = 0; fila < filas; fila++) {
+        for (int columna = 0; columna < columnas; columna++) {
+            Cuadrante cuadrante = getCuadrante(fila, columna);
+            if (cuadrante.isDisparado()) {
+                disparados.add(cuadrante);
+            }
+        }
+    }
+    return disparados;
+}
+
 }

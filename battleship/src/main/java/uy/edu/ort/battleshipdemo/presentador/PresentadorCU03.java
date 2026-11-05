@@ -15,6 +15,7 @@ import uy.edu.ort.battleshipdemo.modelo.Disparo;
 import uy.edu.ort.battleshipdemo.modelo.ResultadoDisparo;
 import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
+import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.Ronda;
 
 @RestController
@@ -28,9 +29,19 @@ public class PresentadorCU03 {
     }
 
     @PostMapping("/iniciarBatalla")
-    public Commands inicializar() {
-        int numeroDeRonda = 1;
-        return Commands.create(cargarEstado("Combate"), cargarNumeroRonda(numeroDeRonda));
+    public Commands inicializar(@RequestParam("idBatalla") int idBatalla) throws BatallaNavalException {
+        Batalla batalla = fachada.buscarBatalla(idBatalla);
+        Oceano oceano = batalla.getOceanoJugador();
+        InicializarDto tablero = new InicializarDto(oceano.getFilas(), oceano.getColumnas(),
+                "/cu03/aguasPropias", "/cu03/disparar");
+        Commands comandos = Commands.create(new Command("inicializar", tablero),
+                new Command("lugarCombate", batalla.getLugar()));
+        dibujarAguasPropias(batalla, comandos);
+        dibujarAguasEnemigas(batalla, comandos);
+        comandos.add(cargarEstado(new BatallaDto(batalla).getEstado()));
+        comandos.add(cargarNumeroRonda(batalla.getNumeroProximaRonda()));
+        comandos.add(cargarBajasEnemigas(batalla));
+        return comandos;
     }
 
     @PostMapping("/disparar")
@@ -138,4 +149,36 @@ public class PresentadorCU03 {
 
         return new Command("bajasEnemigas", bajas);
     }
+
+    private void dibujarAguasPropias(Batalla batalla, Commands comandos) throws BatallaNavalException {
+        for (Cuadrante cuadrante : batalla.getOceanoJugador().listarCuadrantesOcupados()) {
+            comandos.add(marcar("mostrarAguasPropias", cuadrante, "barco"));
+        }
+        for (Cuadrante cuadrante : batalla.getOceanoJugador().listarCuadrantesDisparados()) {
+            comandos.add(marcar("mostrarAguasPropias", cuadrante, resultado(cuadrante)));
+        }
+    }
+
+    private void dibujarAguasEnemigas(Batalla batalla, Commands comandos) throws BatallaNavalException {
+        if (batalla.fuePerdida()) {
+            for (Cuadrante cuadrante : batalla.getOceanoMaquina().listarCuadrantesOcupados()) {
+                comandos.add(marcar("mostrarAguasEnemigas", cuadrante, "barco"));
+            }
+        }
+        for (Cuadrante cuadrante : batalla.getOceanoMaquina().listarCuadrantesDisparados()) {
+            comandos.add(marcar("mostrarAguasEnemigas", cuadrante, resultado(cuadrante)));
+        }
+    }
+
+    private String resultado(Cuadrante cuadrante) {
+        if (cuadrante.estaOcupado()) {
+            return "impacto";
+        }
+        return "agua";
+    }
+
+    private Command marcar(String comando, Cuadrante cuadrante, String valor) {
+        return new Command(comando, new ValorDto(cuadrante.getFila(), cuadrante.getColumna(), valor));
+    }
+
 }
