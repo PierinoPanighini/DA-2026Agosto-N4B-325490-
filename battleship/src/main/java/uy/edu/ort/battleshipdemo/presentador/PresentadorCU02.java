@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import uy.edu.ort.battleshipdemo.modelo.Barco;
 import uy.edu.ort.battleshipdemo.modelo.Batalla;
 import uy.edu.ort.battleshipdemo.modelo.Cuadrante;
-import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
 import uy.edu.ort.battleshipdemo.modelo.Oceano;
@@ -31,7 +30,10 @@ public class PresentadorCU02 {
 
     // -------------------------------PARTE 1
     @PostMapping("/configurarBatalla")
-    public Commands panelCU2() {
+    public Commands panelCU2(@RequestParam(value = "idBatalla", required = false) Integer idBatalla) throws BatallaNavalException {
+        if(idBatalla != null) { enPreparacion = fachada.buscarBatalla(idBatalla);
+            return mostrarDespliegue();
+        }
         return Commands.create(listaTacticas(), listaTiposBarco());
     }
 
@@ -59,9 +61,15 @@ public class PresentadorCU02 {
         Oceano oceano = enPreparacion.getOceanoJugador();
         InicializarDto tablero = new InicializarDto(oceano.getFilas(), oceano.getColumnas(),
                 "/cu02/ubicarBarco", "/cu02/aguasEnemigas");
-        return Commands.create(posicionarBarcos(), barcosDisponibles(),
+       Commands comandos = Commands.create(posicionarBarcos(), barcosDisponibles(),
                 new Command("inicializar", tablero),
                 new Command("lugarCombate", enPreparacion.getLugar()));
+        for (Barco barco : enPreparacion.getFlotaJugador().getBarcos()) { //si hay barcos ubicados los muestro
+            if (barco.estaUbicado()) {
+                comandos.add(mostrarBarcoUbicado(barco));
+            }
+        }
+        return comandos;
     }
 
     @PostMapping("/ubicarBarco")
@@ -151,5 +159,7 @@ public class PresentadorCU02 {
     private Command mostrarBarcoUbicado(Barco barco) {
         return new Command("mostrarBarcoUbicado", new BarcoDto(barco));
     }
+
+
 
 }

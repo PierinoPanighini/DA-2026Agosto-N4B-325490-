@@ -41,7 +41,8 @@ public class SistemaBatallas {
             }
 
             if(nombreYaUsado(nombreProvisto)){
-                throw new BatallaNavalException("No se puede librar mas de una batalla en el mismo lugar, cambie de nombre");
+                throw new BatallaNavalException("No se puede librar más de una batalla en el mismo lugar, cambie de nombre"
+);
             }
 
             if (portaaviones > 6 || acorazados > 6 || cruceros > 6 || submarinos > 6 || destructores > 6 ){
