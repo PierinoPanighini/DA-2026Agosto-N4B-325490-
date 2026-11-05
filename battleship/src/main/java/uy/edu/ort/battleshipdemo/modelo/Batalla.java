@@ -13,7 +13,7 @@ import uy.edu.ort.battleshipdemo.modelo.Tactica;
 
 public class Batalla {
 
-    private static  int proximoId = 1;
+    private static int proximoId = 1;
 
     private final int id;
     private String lugar;
@@ -75,17 +75,13 @@ public class Batalla {
     }
 
     // La solicitud debe traer el numero de ronda que estaba mostrando la vista.
-    public synchronized  void generarDisparo(int fila, int columna, int numeroRondaEsperado)
+    public synchronized void generarDisparo(int fila, int columna, int numeroRondaEsperado)
             throws BatallaNavalException {
-        if (numeroRondaEsperado != getNumeroProximaRonda()) {
+        if (estado.getEstado() == Estados.EN_COMBATE && numeroRondaEsperado != getNumeroProximaRonda()) {
             throw new BatallaNavalException(
                     "La ronda indicada ya no corresponde. Actualice la informacion de la batalla.");
         }
         estado.disparar(fila, columna);
-        }
-
-    public int getNumeroProximaRonda() {
-        return rondas.size() + 1;
     }
 
     public boolean fueGanada() {
@@ -117,6 +113,17 @@ public class Batalla {
     // GETTERS
     public int getId() {
         return id;
+    }
+
+    public int getNumeroRonda() {
+        if (estado.getEstado() == Estados.TERMINADA) {
+            return rondas.size();
+        }
+        return getNumeroProximaRonda();
+    }
+
+    public int getNumeroProximaRonda() {
+        return rondas.size() + 1;
     }
 
     public String getLugar() {
