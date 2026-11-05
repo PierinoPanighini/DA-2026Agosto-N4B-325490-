@@ -35,8 +35,7 @@ public class Oceano {
 
     public Cuadrante getCuadrante (int fila, int columna) throws BatallaNavalException {
         if (!estaDentro(fila, columna)) {
-            throw new BatallaNavalException("Las coordenadas estan fuera del oceano.");//
-            // cambiè el if para usar el metodo estaDentro
+            throw new BatallaNavalException("Las coordenadas estan fuera del oceano.");
         }
 
         return cuadrantes[fila][columna];

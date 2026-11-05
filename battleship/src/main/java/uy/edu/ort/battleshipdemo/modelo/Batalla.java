@@ -36,7 +36,7 @@ public class Batalla {
         this.bajasAmigas = new ArrayList<>();
     }
 
-    public void validarBatalla() { // FIXME: Chequear que tan necesarias son estas validaciones
+    public void validarBatalla() {
         if (this.jugador == null || this.maquina == null) {
             throw new IllegalArgumentException("La batalla debe tener un jugador y una maquina.");
         }
@@ -94,7 +94,7 @@ public class Batalla {
                 && bajasAmigas.size() > bajasEnemigas.size();
     }
 
-    // ESTADO batalla conoce su estado, saber si está en preparación
+    // sobre ESTADO de batalla: saber si está en preparación
     public boolean estaEnPreparacion() {
         return estado.getEstado() == Estados.EN_PREPARACION;
     }
