@@ -10,12 +10,14 @@ public class SalaDto {
     private int ganadas;
     private int perdidas;
     private String exito;
+    private String detalleExito;
     private List<BatallaDto> batallas;
 
     public SalaDto(Fachada fachada) {
         ganadas = fachada.contarBatallasGanadas();
         perdidas = fachada.contarBatallasPerdidas();
         exito = Math.round(fachada.calcularExitoCampania()) + "%";
+        detalleExito = "(" + ganadas + " de " + (ganadas + perdidas) + " batallas)";
         batallas = BatallaDto.listaDtos(fachada.listarBatallas());
     }
 
@@ -33,5 +35,9 @@ public class SalaDto {
 
     public List<BatallaDto> getBatallas() {
         return batallas;
+    }
+
+    public String getDetalleExito() {
+        return detalleExito;
     }
 }

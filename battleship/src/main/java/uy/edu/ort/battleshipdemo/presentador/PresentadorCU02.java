@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 import uy.edu.ort.battleshipdemo.modelo.Barco;
 import uy.edu.ort.battleshipdemo.modelo.Batalla;
 import uy.edu.ort.battleshipdemo.modelo.Cuadrante;
+import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
+import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.Orientacion;
 
 @RestController
@@ -20,38 +22,47 @@ import uy.edu.ort.battleshipdemo.modelo.Orientacion;
 public class PresentadorCU02 {
 
     private Fachada fachada;
-    private Batalla enPreparacion; //FIXME: ATENTO A AGREGAR SESSION PARA ARREGLAR QUE NO QUEDE LA MISMA TEMPORAL PARA TODOS LOS NAVEGADORES
+    private Batalla enPreparacion; // FIXME: ATENTO A AGREGAR SESSION PARA ARREGLAR QUE NO QUEDE LA MISMA TEMPORAL
+                                   // PARA TODOS LOS NAVEGADORES
 
     public PresentadorCU02(Fachada fachada) {
         this.fachada = fachada;
     }
 
-
-    //-------------------------------PARTE 1
+    // -------------------------------PARTE 1
     @PostMapping("/configurarBatalla")
     public Commands panelCU2() {
-       return Commands.create(listaTacticas());
+        return Commands.create(listaTacticas(), listaTiposBarco());
     }
 
     @PostMapping("/crearBatalla")
-    public Commands crearBatallaPreparacion(@RequestParam(required = false) String nombre, @RequestParam String tactica, @RequestParam int filas,
-        @RequestParam int columnas, @RequestParam int portaaviones, @RequestParam int acorazados, @RequestParam int cruceros,
-        @RequestParam int submarinos, @RequestParam int destructores ) {
+    public Commands crearBatallaPreparacion(@RequestParam(required = false) String nombre, @RequestParam String tactica,
+            @RequestParam int filas,
+            @RequestParam int columnas, @RequestParam int portaaviones, @RequestParam int acorazados,
+            @RequestParam int cruceros,
+            @RequestParam int submarinos, @RequestParam int destructores) {
 
-        try{
+        try {
             enPreparacion = fachada.prepararBatalla(nombre, tactica, filas, columnas,
-        portaaviones, acorazados, cruceros, submarinos, destructores);
-        } catch (BatallaNavalException ex){
+                    portaaviones, acorazados, cruceros, submarinos, destructores);
+        } catch (BatallaNavalException ex) {
             return Commands.create(mensaje(ex.getMessage()));
         }
 
+        return mostrarDespliegue();
 
-        return Commands.create(posicionarBarcos(), barcosDisponibles());
     }
 
+    // ---------------------------------PARTE 2
 
-
-    //---------------------------------PARTE 2
+    private Commands mostrarDespliegue() {
+        Oceano oceano = enPreparacion.getOceanoJugador();
+        InicializarDto tablero = new InicializarDto(oceano.getFilas(), oceano.getColumnas(),
+                "/cu02/ubicarBarco", "/cu02/aguasEnemigas");
+        return Commands.create(posicionarBarcos(), barcosDisponibles(),
+                new Command("inicializar", tablero),
+                new Command("lugarCombate", enPreparacion.getLugar()));
+    }
 
     @PostMapping("/ubicarBarco")
     public Commands ubicarBarco(
@@ -73,6 +84,25 @@ public class PresentadorCU02 {
         }
     }
 
+    private String textoLeyenda(Orientacion orientacion) {
+        List<Barco> pendientes = enPreparacion.getFlotaJugador().listarBarcosPendientes();
+        if (pendientes.isEmpty()) {
+            return "Batalla preparada";
+        }
+        Barco primero = pendientes.get(0);
+        return "Posicione su " + primero.getNombre() + " en forma " + orientacion.toString().toLowerCase();
+    }
+
+    @PostMapping("/aguasEnemigas")
+    public Commands aguasEnemigas() {
+        return Commands.create(mensaje("No puede ubicar barcos en aguas enemigas"));
+    }
+
+    @PostMapping("/leyenda")
+    public Commands leyenda(@RequestParam("orientacion") Orientacion orientacion) {
+        return Commands.create(new Command("leyenda", textoLeyenda(orientacion)));
+    }
+
     @PostMapping("/entrarBatalla")
     public Commands entrarBatalla() {
         try {
@@ -83,8 +113,6 @@ public class PresentadorCU02 {
             return Commands.create(mensaje(ex.getMessage()));
         }
     }
-
-
 
     private void validarBatallaSeleccionada() throws BatallaNavalException {
         if (enPreparacion == null) {
@@ -112,13 +140,16 @@ public class PresentadorCU02 {
         return new Command("listaTacticas", fachada.listarTacticas());
     }
 
-    private Command iniciarBatalla(){
+    private Command listaTiposBarco() {
+        return new Command("listaTiposBarco", fachada.listarTiposBarco());
+    }
+
+    private Command iniciarBatalla() {
         return new Command("iniciarBatalla", true);
     }
 
-    private Command mostrarBarcoUbicado(Barco barco){
+    private Command mostrarBarcoUbicado(Barco barco) {
         return new Command("mostrarBarcoUbicado", new BarcoDto(barco));
     }
-
 
 }

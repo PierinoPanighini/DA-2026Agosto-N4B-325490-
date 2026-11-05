@@ -179,13 +179,13 @@ public class SistemaBatallas {
         return new ArrayList<>(batallas);
     }
 
-    public Batalla buscarBatalla(int id) {
+    public Batalla buscarBatalla(int id) throws BatallaNavalException {
         for (Batalla batalla : batallas) {
             if (batalla.getId() == id) {
                 return batalla;
             }
         }
-        return null;
+        throw new BatallaNavalException("No se encontro la batalla con ID: " + id);
     }
 
     public int contarBatallasGanadas() {

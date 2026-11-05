@@ -80,6 +80,7 @@ public class Batalla {
         estado.disparar(fila, columna);
     }
 
+
     public int getNumeroProximaRonda() {
         return rondas.size() + 1;
     }
@@ -92,6 +93,11 @@ public class Batalla {
     public boolean fuePerdida() {
         return estado.getEstado() == Estados.TERMINADA
                 && bajasAmigas.size() > bajasEnemigas.size();
+    }
+
+        //ESTADO batalla conoce su estado, saber si está en preparación
+    public boolean estaEnPreparacion() {
+        return estado.getEstado() == Estados.EN_PREPARACION;
     }
 
     public void iniciarCombate()
