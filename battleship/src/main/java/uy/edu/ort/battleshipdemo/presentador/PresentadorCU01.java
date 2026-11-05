@@ -5,7 +5,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import uy.edu.ort.battleshipdemo.modelo.Batalla;
+import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
+
 
 @RestController
 @RequestMapping("/cu01")
@@ -18,14 +21,16 @@ public class PresentadorCU01 {
 
     @PostMapping("/iniciarNuevaBatalla")
     public Commands iniciarNuevaBatalla() {
-        // TODO: preparar el comando para mostrar la preparacion de una batalla.
-        return Commands.create();
+        return Commands.create(new Command("irA", "/preparar.html"));
     }
 
     @PostMapping("/entrarBatalla")
-    public Commands entrarBatalla(@RequestParam("id") int id) {
-        // TODO: buscar la batalla y preparar los comandos segun su estado.
-        return Commands.create();
+    public Commands entrarBatalla(@RequestParam("id") int id) throws BatallaNavalException {
+        Batalla batalla = Fachada.getInstancia().buscarBatalla(id);
+        if (batalla.estaEnPreparacion()) {
+            return Commands.create(new Command("irA", "/preparar.html?batalla=" + id));
+        }
+        return Commands.create(new Command("irA", "/batalla.html?batalla=" + id));
     }
 
     private Command sala() {

@@ -35,8 +35,7 @@ public class Oceano {
 
     public Cuadrante getCuadrante (int fila, int columna) throws BatallaNavalException {
         if (!estaDentro(fila, columna)) {
-            throw new BatallaNavalException("Las coordenadas estan fuera del oceano.");//
-            // cambiè el if para usar el metodo estaDentro
+            throw new BatallaNavalException("Las coordenadas estan fuera del oceano.");
         }
 
         return cuadrantes[fila][columna];
@@ -139,4 +138,19 @@ public class Oceano {
             }
         }
     }
+
+    /*CU03 */
+    public List<Cuadrante> listarCuadrantesDisparados() throws BatallaNavalException {
+    List<Cuadrante> disparados = new ArrayList<>();
+    for (int fila = 0; fila < filas; fila++) {
+        for (int columna = 0; columna < columnas; columna++) {
+            Cuadrante cuadrante = getCuadrante(fila, columna);
+            if (cuadrante.isDisparado()) {
+                disparados.add(cuadrante);
+            }
+        }
+    }
+    return disparados;
+}
+
 }

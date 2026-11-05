@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import modelo.Barco;
-import modelo.Batalla;
 
 
 public class SistemaBatallas {
@@ -43,7 +41,8 @@ public class SistemaBatallas {
             }
 
             if(nombreYaUsado(nombreProvisto)){
-                throw new BatallaNavalException("No se puede librar mas de una batalla en el mismo lugar, cambie de nombre");
+                throw new BatallaNavalException("No se puede librar más de una batalla en el mismo lugar, cambie de nombre"
+);
             }
 
             if (portaaviones > 6 || acorazados > 6 || cruceros > 6 || submarinos > 6 || destructores > 6 ){
@@ -181,13 +180,13 @@ public class SistemaBatallas {
         return new ArrayList<>(batallas);
     }
 
-    public Batalla buscarBatalla(int id) {
+    public Batalla buscarBatalla(int id) throws BatallaNavalException {
         for (Batalla batalla : batallas) {
             if (batalla.getId() == id) {
                 return batalla;
             }
         }
-        return null;
+        throw new BatallaNavalException("No se encontro la batalla con ID: " + id);
     }
 
     public int contarBatallasGanadas() {
@@ -211,10 +210,11 @@ public class SistemaBatallas {
     }
 
     public double calcularExitoCampania() {
-        if(batallas.size() == 0) {
+        int terminadas = contarBatallasGanadas() + contarBatallasPerdidas();
+        if (terminadas == 0) {
             return 0.0;
         }
-        return contarBatallasGanadas()*100.0 / batallas.size();
+        return contarBatallasGanadas() * 100.0 / terminadas;
     }
 
 

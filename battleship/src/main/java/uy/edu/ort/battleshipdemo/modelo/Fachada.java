@@ -2,8 +2,6 @@ package uy.edu.ort.battleshipdemo.modelo;
 
 import java.util.List;
 
-import modelo.Batalla;
-import modelo.Precargas;
 
 
 public class Fachada {

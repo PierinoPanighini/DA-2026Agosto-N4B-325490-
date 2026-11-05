@@ -36,17 +36,17 @@ public class Batalla {
         this.bajasAmigas = new ArrayList<>();
     }
 
-
-    public void validarBatalla (){ //FIXME: Chequear que tan necesarias son estas validaciones
+    public void validarBatalla() {
         if (this.jugador == null || this.maquina == null) {
             throw new IllegalArgumentException("La batalla debe tener un jugador y una maquina.");
         }
-        if (this.jugador.getFlota() == this.maquina.getFlota() || this.jugador.getOceano() == this.maquina.getOceano()) {
+        if (this.jugador.getFlota() == this.maquina.getFlota()
+                || this.jugador.getOceano() == this.maquina.getOceano()) {
             throw new IllegalArgumentException("Los participantes deben tener flotas y oceanos independientes.");
         }
     }
 
-    private static int generarId() {
+    private static synchronized int generarId() {
         return proximoId++;
     }
 
@@ -75,13 +75,13 @@ public class Batalla {
     }
 
     // La solicitud debe traer el numero de ronda que estaba mostrando la vista.
-    public void generarDisparo(int fila, int columna, int numeroRondaEsperado)
+    public synchronized void generarDisparo(int fila, int columna, int numeroRondaEsperado)
             throws BatallaNavalException {
+        if (estado.getEstado() == Estados.EN_COMBATE && numeroRondaEsperado != getNumeroProximaRonda()) {
+            throw new BatallaNavalException(
+                    "La ronda indicada ya no corresponde. Actualice la informacion de la batalla.");
+        }
         estado.disparar(fila, columna);
-    }
-
-    public int getNumeroProximaRonda() {
-        return rondas.size() + 1;
     }
 
     public boolean fueGanada() {
@@ -94,7 +94,12 @@ public class Batalla {
                 && bajasAmigas.size() > bajasEnemigas.size();
     }
 
-    public void iniciarCombate()
+    // sobre ESTADO de batalla: saber si está en preparación
+    public boolean estaEnPreparacion() {
+        return estado.getEstado() == Estados.EN_PREPARACION;
+    }
+
+    public synchronized void iniciarCombate()
             throws BatallaNavalException {
         estado.iniciarCombate();
     }
@@ -108,6 +113,17 @@ public class Batalla {
     // GETTERS
     public int getId() {
         return id;
+    }
+
+    public int getNumeroRonda() {
+        if (estado.getEstado() == Estados.TERMINADA) {
+            return rondas.size();
+        }
+        return getNumeroProximaRonda();
+    }
+
+    public int getNumeroProximaRonda() {
+        return rondas.size() + 1;
     }
 
     public String getLugar() {
@@ -158,7 +174,7 @@ public class Batalla {
         return bajasAmigas;
     }
 
-    public boolean flotaAmigaUbicada(){
+    public boolean flotaAmigaUbicada() {
         return this.getJugador().flotaUbicada();
     }
 

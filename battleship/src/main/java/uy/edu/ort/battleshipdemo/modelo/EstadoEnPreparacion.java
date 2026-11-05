@@ -37,7 +37,7 @@ public class EstadoEnPreparacion extends EstadoBatalla {
 
         if (!batalla.getFlotaJugador().estaCompletamenteUbicada()) {
             throw new BatallaNavalException(
-                    "Debe colocar todos sus barcos antes de iniciar el combate.");
+                    "Debe posicionar todos sus barcos primero");
         }
 
         if (!batalla.getFlotaMaquina().estaCompletamenteUbicada()) {

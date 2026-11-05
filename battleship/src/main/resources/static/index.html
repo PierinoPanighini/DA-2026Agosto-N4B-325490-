@@ -2,34 +2,143 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sala de operaciones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+  <link rel="stylesheet" href="/estilos.css">
 </head>
-<body>
-  <h1>Sala de operaciones</h1>
+<body class="fondo-sala">
+  <main class="contenedor">
+    <header class="encabezado">
+      <div class="marca">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="5" r="2.5"></circle>
+          <path d="M12 7.5V21"></path>
+          <path d="M8 11h8"></path>
+          <path d="M4 14c0 4 3.6 7 8 7s8-3 8-7"></path>
+          <path d="M2.5 15.5 4 14l1.5 1.5"></path>
+          <path d="M18.5 15.5 20 14l1.5 1.5"></path>
+        </svg>
+        <div>
+          <h1>Sala de operaciones</h1>
+          <p class="bajada">SUPERVISA. PLANIFICA. COMBATE.</p>
+        </div>
+      </div>
+      <button id="botonNuevaBatalla" class="boton boton-primario" type="button">+ Iniciar nueva batalla</button>
+    </header>
 
-  <p>Ganadas: <span id="ganadas"></span></p>
-  <p>Perdidas: <span id="perdidas"></span></p>
-  <p>Éxito: <span id="exito"></span></p>
+    <div id="mensaje" class="mensaje" role="status"></div>
 
-  <div id="tablaBatallas"></div>
+    <section class="indicadores" aria-label="Resumen de la campaña">
+      <div class="tarjeta indicador">
+        <h2>Batallas ganadas</h2>
+        <p id="ganadas" class="valor-ganadas"></p>
+      </div>
+      <div class="tarjeta indicador">
+        <h2>Batallas perdidas</h2>
+        <p id="perdidas" class="valor-perdidas"></p>
+      </div>
+      <div class="tarjeta indicador">
+        <h2>Éxito de la campaña</h2>
+        <p id="exito" class="valor-exito"></p>
+        <p id="detalleExito" class="detalle-exito"></p>
+      </div>
+    </section>
 
-  <script src="/utilesVista.js"></script>
+    <section class="tarjeta listado">
+      <h2>Listado de batallas</h2>
+      <div class="tabla-desplazable">
+        <table class="tabla-batallas">
+          <thead>
+            <tr>
+              <th scope="col">Lugar del combate</th>
+              <th scope="col">Dimensiones</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Flota propia</th>
+              <th scope="col">Flota enemiga</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="filasBatallas"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <template id="plantillaFilaBatalla">
+    <tr>
+      <td class="celda-lugar"></td>
+      <td class="celda-dimensiones"></td>
+      <td><span class="chip"></span></td>
+      <td class="celda-propia"></td>
+      <td class="celda-enemiga"></td>
+      <td class="celda-accion"><button class="boton boton-secundario" type="button">Entrar</button></td>
+    </tr>
+  </template>
+
   <script type="module">
     import CommandDispatcher from '/CommandDispatcher.js';
 
-    const viewConfig = CommandDispatcher.registerView('Sala', {
-      urlInicio: '/cu01/inicializar',
-      onException: (msg) => mostrarMensaje(msg)
+    const zonaMensaje = document.getElementById('mensaje');
+    const filasBatallas = document.getElementById('filasBatallas');
+    const plantillaFila = document.getElementById('plantillaFilaBatalla');
+
+    const clasePorEstado = {
+      'En preparación': 'chip-preparacion',
+      'En combate': 'chip-combate',
+      'Ganada': 'chip-ganada',
+      'Perdida': 'chip-perdida'
+    };
+
+    function mostrarMensaje(texto) {
+      zonaMensaje.textContent = texto;
+    }
+
+    function dibujarBatalla(batalla) {
+      const fila = plantillaFila.content.cloneNode(true);
+      const chip = fila.querySelector('.chip');
+      fila.querySelector('.celda-lugar').textContent = batalla.lugar;
+      fila.querySelector('.celda-dimensiones').textContent = batalla.dimensiones;
+      chip.textContent = batalla.estado;
+      chip.classList.add(clasePorEstado[batalla.estado]);
+      fila.querySelector('.celda-propia').textContent = batalla.integridadPropia;
+      fila.querySelector('.celda-enemiga').textContent = batalla.integridadEnemiga;
+      fila.querySelector('button').addEventListener('click', () => {
+        mostrarMensaje('');
+        CommandDispatcher.submit('/cu01/entrarBatalla', { id: batalla.id });
+      });
+      filasBatallas.appendChild(fila);
+    }
+
+    document.getElementById('botonNuevaBatalla').addEventListener('click', () => {
+      mostrarMensaje('');
+      CommandDispatcher.submit('/cu01/iniciarNuevaBatalla');
     });
 
-    viewConfig.handler('sala', (sala) => {
+    const vista = CommandDispatcher.registerView('Sala', {
+      urlInicio: '/cu01/inicializar',
+      onException: mostrarMensaje,
+      onError: () => mostrarMensaje('No se pudo completar la acción.')
+    });
+
+    vista.handler('sala', (sala) => {
       document.getElementById('ganadas').textContent = sala.ganadas;
       document.getElementById('perdidas').textContent = sala.perdidas;
       document.getElementById('exito').textContent = sala.exito;
-      document.getElementById('tablaBatallas').innerHTML = crearTablaDesdeJson(sala.batallas);
+      document.getElementById('detalleExito').textContent = sala.detalleExito;
+      filasBatallas.replaceChildren();
+      sala.batallas.forEach(dibujarBatalla);
     });
 
-    CommandDispatcher.startView(viewConfig);
+    vista.handler('mensaje', mostrarMensaje);
+
+    vista.handler('irA', (url) => {
+      window.location.href = url;
+    });
+
+    CommandDispatcher.startView(vista);
   </script>
 </body>
 </html>

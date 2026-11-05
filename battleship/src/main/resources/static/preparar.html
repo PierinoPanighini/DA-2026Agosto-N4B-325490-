@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preparar una nueva batalla</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body class="fondo-flota">
+  <main class="contenedor">
+    <a class="volver" href="/"><span aria-hidden="true">&#8249;</span> Volver a la sala de operaciones</a>
+
+    <div class="titulo-pagina paso-preparar" hidden>
+      <h1>Preparar una nueva batalla</h1>
+      <p>Configurá el escenario, la flota y la táctica del oponente. Después vas a desplegar tus barcos en el tablero.</p>
+    </div>
+
+    <div class="titulo-pagina titulo-en-linea paso-despliegue" hidden>
+      <h1>Desplegando la Flota</h1>
+      <p>Lugar del combate: <strong id="lugarCombate"></strong></p>
+    </div>
+
+    <div id="mensaje" class="mensaje" role="status"></div>
+
+    <form id="formularioBatalla" class="paso-preparar" novalidate hidden>
+      <div class="columnas-preparar">
+        <section class="tarjeta">
+          <h2>Lugar del combate</h2>
+          <div class="campo">
+            <label for="nombre">Nombre del combate</label>
+            <input id="nombre" name="nombre" type="text" autocomplete="off">
+            <p class="ayuda">Si lo dejás vacío se genera un nombre al azar.</p>
+          </div>
+          <div class="campo">
+            <label for="tactica">Táctica del oponente</label>
+            <select id="tactica" name="tactica"></select>
+          </div>
+        </section>
+
+        <section class="tarjeta">
+          <h2>Océano</h2>
+          <div class="campo">
+            <label for="columnas">Celdas horizontales (ancho)</label>
+            <input id="columnas" name="columnas" type="number" value="10">
+          </div>
+          <div class="campo">
+            <label for="filas">Celdas verticales (alto)</label>
+            <input id="filas" name="filas" type="number" value="10">
+            <p class="ayuda">Entre 6 y 12 celdas por lado.</p>
+          </div>
+        </section>
+
+        <section class="tarjeta">
+          <h2>Flota</h2>
+          <table class="tabla-flota">
+            <thead>
+              <tr>
+                <th scope="col">Tipo</th>
+                <th scope="col">Tamaño</th>
+                <th scope="col">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody id="filasFlota"></tbody>
+          </table>
+          <p class="ayuda">Entre 0 y 6 por tipo. La flota debe ocupar menos del 25 % del océano.</p>
+        </section>
+      </div>
+
+      <div class="acciones-formulario">
+        <button class="boton boton-primario" type="submit">Continuar</button>
+      </div>
+    </form>
+
+    <div class="columnas-despliegue paso-despliegue" hidden>
+      <section class="tarjeta panel-tablero" aria-label="Tablero">
+        <div id="tablero"></div>
+      </section>
+
+      <aside class="panel-lateral">
+        <section class="tarjeta">
+          <h2>Barcos disponibles</h2>
+          <ol id="listaBarcos" class="lista-barcos"></ol>
+        </section>
+
+        <section class="tarjeta">
+          <fieldset class="opciones-orientacion">
+            <legend>Orientación</legend>
+            <label class="opcion-radio">
+              <input type="radio" name="orientacion" value="HORIZONTAL" checked> Horizontal
+            </label>
+            <label class="opcion-radio">
+              <input type="radio" name="orientacion" value="VERTICAL"> Vertical
+            </label>
+          </fieldset>
+        </section>
+
+        <p id="leyenda" class="leyenda"></p>
+
+        <button id="botonLibrar" class="boton boton-primario boton-ancho" type="button">Librar batalla</button>
+      </aside>
+    </div>
+  </main>
+
+  <template id="plantillaFilaFlota">
+    <tr>
+      <td class="celda-tipo"></td>
+      <td class="celda-tamanio"></td>
+      <td><input type="number" value="1"></td>
+    </tr>
+  </template>
+
+  <script type="module">
+    import CommandDispatcher from '/CommandDispatcher.js';
+    import BattleShipBoard from '/BattleShipBoard.js';
+
+    const zonaMensaje = document.getElementById('mensaje');
+    const formulario = document.getElementById('formularioBatalla');
+    const selectTactica = document.getElementById('tactica');
+    const filasFlota = document.getElementById('filasFlota');
+    const plantillaFila = document.getElementById('plantillaFilaFlota');
+    const listaBarcos = document.getElementById('listaBarcos');
+    const leyenda = document.getElementById('leyenda');
+    const lugarCombate = document.getElementById('lugarCombate');
+    const radiosOrientacion = document.querySelectorAll('input[name="orientacion"]');
+
+    // Nombre con el que PresentadorCU02 recibe la cantidad de cada tipo de barco.
+    const parametroPorTipo = {
+      'Portaaviones': 'portaaviones',
+      'Acorazado': 'acorazados',
+      'Crucero': 'cruceros',
+      'Submarino': 'submarinos',
+      'Destructor': 'destructores'
+    };
+
+    let idPrimerBarco = -1;
+
+    function mostrarMensaje(texto) {
+      zonaMensaje.textContent = texto;
+    }
+
+    function mostrarPaso(pasoVisible) {
+      document.querySelectorAll('.paso-preparar').forEach((elemento) => {
+        elemento.hidden = pasoVisible !== 'preparar';
+      });
+      document.querySelectorAll('.paso-despliegue').forEach((elemento) => {
+        elemento.hidden = pasoVisible !== 'despliegue';
+      });
+    }
+
+    function orientacionElegida() {
+      return document.querySelector('input[name="orientacion"]:checked').value;
+    }
+
+    function pedirLeyenda() {
+      CommandDispatcher.submit('/cu02/leyenda', { orientacion: orientacionElegida() });
+    }
+
+    function dibujarBarco(barco) {
+      const item = document.createElement('li');
+      const nombre = document.createElement('span');
+      const celdas = document.createElement('span');
+      item.className = 'barco-disponible';
+      nombre.textContent = barco.nombre;
+      celdas.textContent = barco.tamanio + (barco.tamanio === 1 ? ' celda' : ' celdas');
+      item.append(nombre, celdas);
+      listaBarcos.appendChild(item);
+    }
+
+    // El tablero solo envía las coordenadas: acá se agregan el barco y la orientación.
+    const dispatcherTablero = {
+      mapFunctions: (funciones, opciones) => CommandDispatcher.mapFunctions(funciones, opciones),
+      submit: (url, coordenadas) => {
+        mostrarMensaje('');
+        return CommandDispatcher.submit(url, {
+          ...coordenadas,
+          idBarco: idPrimerBarco,
+          orientacion: orientacionElegida()
+        });
+      }
+    };
+
+    const tablero = new BattleShipBoard(document.getElementById('tablero'), dispatcherTablero);
+
+    formulario.addEventListener('submit', (evento) => {
+      evento.preventDefault();
+      mostrarMensaje('');
+      const datos = Object.fromEntries(new FormData(formulario));
+      CommandDispatcher.submit('/cu02/crearBatalla', datos);
+    });
+
+    radiosOrientacion.forEach((radio) => radio.addEventListener('change', pedirLeyenda));
+
+    document.getElementById('botonLibrar').addEventListener('click', () => {
+      mostrarMensaje('');
+      CommandDispatcher.submit('/cu02/entrarBatalla');
+    });
+
+    // Si se entra desde la sala a una batalla en preparación, la URL trae su id.
+    const idBatalla = new URLSearchParams(window.location.search).get('batalla');
+
+    const vista = CommandDispatcher.registerView('Preparar', {
+      urlInicio: '/cu02/configurarBatalla',
+      dataInicio: { idBatalla },
+      onException: mostrarMensaje,
+      onError: () => mostrarMensaje('No se pudo completar la acción. Revise los datos ingresados.')
+    });
+
+    vista.handler('listaTacticas', (tacticas) => {
+      mostrarPaso('preparar');
+      selectTactica.replaceChildren();
+      tacticas.forEach((tactica) => {
+        const opcion = document.createElement('option');
+        opcion.value = tactica.nombre;
+        opcion.textContent = tactica.nombre;
+        selectTactica.appendChild(opcion);
+      });
+    });
+
+    vista.handler('listaTiposBarco', (tipos) => {
+      filasFlota.replaceChildren();
+      tipos.forEach((tipo) => {
+        const fila = plantillaFila.content.cloneNode(true);
+        const cantidad = fila.querySelector('input');
+        fila.querySelector('.celda-tipo').textContent = tipo.nombre;
+        fila.querySelector('.celda-tamanio').textContent = tipo.tamanio;
+        cantidad.name = parametroPorTipo[tipo.nombre];
+        cantidad.setAttribute('aria-label', 'Cantidad de ' + tipo.nombre);
+        filasFlota.appendChild(fila);
+      });
+    });
+
+    vista.handler('posicionarBarcos', () => {
+      mostrarPaso('despliegue');
+    });
+
+    vista.handler('lugarCombate', (lugar) => {
+      lugarCombate.textContent = lugar;
+    });
+
+    vista.handler('barcosDisponibles', (barcos) => {
+      listaBarcos.replaceChildren();
+      barcos.forEach(dibujarBarco);
+      idPrimerBarco = barcos.length > 0 ? barcos[0].id : -1;
+      pedirLeyenda();
+    });
+
+    vista.handler('mostrarBarcoUbicado', (barco) => {
+      barco.cuadrantes.forEach((cuadrante) => tablero.mostrarAguasPropias(cuadrante));
+    });
+
+    vista.handler('leyenda', (texto) => {
+      leyenda.textContent = texto;
+    });
+
+    vista.handler('mensaje', mostrarMensaje);
+
+    vista.handler('iniciarBatalla', (id) => {
+      window.location.href = '/batalla.html?batalla=' + id;
+    });
+
+    CommandDispatcher.startView(vista);
+  </script>
+</body>
+</html>

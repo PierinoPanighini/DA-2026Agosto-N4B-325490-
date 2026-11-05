@@ -129,6 +129,6 @@ public class TacticaCazaAtaque extends Tactica {
         if (libres.isEmpty()) {
             throw new BatallaNavalException("No hay cuadrantes disponibles para disparar");
         }
-        return libres.get(azar.nextInt(libres.size())); // cuántos libres hay
+        return libres.get(azar.nextInt(libres.size()));
     }
 }
