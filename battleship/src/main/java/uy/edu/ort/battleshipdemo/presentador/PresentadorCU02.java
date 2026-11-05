@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.annotation.SessionScope;
+
 
 import uy.edu.ort.battleshipdemo.modelo.Barco;
 import uy.edu.ort.battleshipdemo.modelo.Batalla;
@@ -17,12 +19,12 @@ import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.Orientacion;
 
 @RestController
+@SessionScope
 @RequestMapping("/cu02")
 public class PresentadorCU02 {
 
     private Fachada fachada;
-    private Batalla enPreparacion; // FIXME: ATENTO A AGREGAR SESSION PARA ARREGLAR QUE NO QUEDE LA MISMA TEMPORAL
-                                   // PARA TODOS LOS NAVEGADORES
+    private Batalla enPreparacion;
 
     public PresentadorCU02(Fachada fachada) {
         this.fachada = fachada;
