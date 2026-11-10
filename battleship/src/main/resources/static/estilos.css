@@ -778,3 +778,26 @@ select {
     width: 100%;
   }
 }
+
+/*
+//-------------------------------EXTRAS SONIDOS----------------------------------//
+*/
+.controles-sonido {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.controles-sonido label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controles-sonido input[type="range"] {
+  width: 100px;
+  accent-color: var(--texto);
+}

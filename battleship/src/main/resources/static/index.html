@@ -81,6 +81,7 @@
   <script type="module">
     import CommandDispatcher from '/CommandDispatcher.js';
 
+
     const zonaMensaje = document.getElementById('mensaje');
     const filasBatallas = document.getElementById('filasBatallas');
     const plantillaFila = document.getElementById('plantillaFilaBatalla');
@@ -139,6 +140,11 @@
     });
 
     CommandDispatcher.startView(vista);
+  </script>
+  <script type="module">
+    //-------------------------------EXTRAS SONIDOS----------------------------------//
+    import Sonidos from '/Sonidos.js';
+    Sonidos.instalarEnVista();
   </script>
 </body>
 </html>

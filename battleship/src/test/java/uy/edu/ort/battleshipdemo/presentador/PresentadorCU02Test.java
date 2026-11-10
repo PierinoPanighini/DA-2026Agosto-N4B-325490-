@@ -10,14 +10,20 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import uy.edu.ort.battleshipdemo.config.ManejadorGlobalExcepciones;
 import uy.edu.ort.battleshipdemo.modelo.*;
 
 class PresentadorCU02Test {
     private MockMvc mvc;
+    private Fachada fachada;
+    private ConexionNavegador conexion;
+    private PresentadorCU02 presentador;
     private Batalla batalla;
     private Barco grande;
     private Barco pequeno;
@@ -31,106 +37,123 @@ class PresentadorCU02Test {
         Maquina maquina = new Maquina(propia.crearFlotaEquivalente(), new Oceano(6, 6),
                 new TacticaSecuencial());
         batalla = new Batalla("Atlantico", jugador, maquina);
-        Fachada fachada = mock(Fachada.class);
+        fachada = mock(Fachada.class);
         when(fachada.prepararBatalla(nullable(String.class), eq("Secuencial"), eq(6), eq(6),
                 eq(0), eq(0), eq(1), eq(1), eq(0))).thenReturn(batalla);
-        mvc = MockMvcBuilders.standaloneSetup(new PresentadorCU02(fachada)).build();
+        when(fachada.buscarBatalla(batalla.getId())).thenReturn(batalla);
+        conexion = nuevaConexion();
+        presentador = new PresentadorCU02(fachada, conexion);
+        mvc = MockMvcBuilders.standaloneSetup(presentador)
+                .setControllerAdvice(new ManejadorGlobalExcepciones()).build();
+    }
+
+    private ConexionNavegador nuevaConexion() {
+        ConexionNavegador nueva = mock(ConexionNavegador.class);
+        when(nueva.getConexionSSE()).thenReturn(new SseEmitter());
+        return nueva;
+    }
+
+    private Commands ultimoEnvio(ConexionNavegador destinatario, int cantidad) {
+        ArgumentCaptor<Commands> captor = ArgumentCaptor.forClass(Commands.class);
+        verify(destinatario, times(cantidad)).enviarJSON(captor.capture());
+        return captor.getAllValues().get(cantidad - 1);
+    }
+
+    private Object parametro(Commands comandos, String nombre) {
+        return comandos.getCommands().stream().filter(c -> c.getId().equals(nombre))
+                .findFirst().orElseThrow().getParametro();
+    }
+
+    private void observar() throws Exception {
+        presentador.registrarSSE(batalla.getId());
+        clearInvocations(conexion);
     }
 
     @Test
-    void creacionEnviaIdsYBarcosDisponiblesOrdenadosPorTamanio() throws Exception {
-        crearPreparacion()
-                .andExpect(jsonPath("$.commands[0].id").value("posicionarBarcos"))
-                .andExpect(jsonPath("$.commands[1].id").value("barcosDisponibles"))
-                .andExpect(jsonPath("$.commands[1].parametro.length()").value(2))
-                .andExpect(jsonPath("$.commands[1].parametro[0].id").value(grande.getId()))
-                .andExpect(jsonPath("$.commands[1].parametro[0].nombre").value("Crucero"))
-                .andExpect(jsonPath("$.commands[1].parametro[0].cuadrantes.length()").value(0))
-                .andExpect(jsonPath("$.commands[1].parametro[1].id").value(pequeno.getId()));
+    void creacionAbreElDespliegueYElCanalEnviaLosBarcosOrdenados() throws Exception {
+        crearPreparacion().andExpect(jsonPath("$.commands[0].id").value("abrirDespliegue"))
+                .andExpect(jsonPath("$.commands[0].parametro").value(batalla.getId()));
+        presentador.registrarSSE(batalla.getId());
+        Commands inicial = ultimoEnvio(conexion, 1);
+        List<?> pendientes = (List<?>) parametro(inicial, "barcosDisponibles");
+        assertEquals(2, pendientes.size());
+        assertEquals(grande.getId(), ((BarcoDto) pendientes.get(0)).getId());
+        assertEquals(pequeno.getId(), ((BarcoDto) pendientes.get(1)).getId());
+        assertTrue(((BarcoDto) pendientes.get(0)).getCuadrantes().isEmpty());
         assertSame(pequeno, batalla.getFlotaJugador().getBarcos().get(0));
     }
 
     @Test
-    void ubicacionRecibeIdYCoordenadasYSerializaUnDtoSinReferenciasCirculares() throws Exception {
-        crearPreparacion();
-        ubicar(grande.getId(), 1, 1, "HORIZONTAL")
-                .andExpect(jsonPath("$.commands[0].id").value("mostrarBarcoUbicado"))
-                .andExpect(jsonPath("$.commands[0].parametro.id").value(grande.getId()))
-                .andExpect(jsonPath("$.commands[0].parametro.tamanio").value(3))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes.length()").value(3))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes[0].coordenadaVertical").value(1))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes[0].coordenadaHorizontal").value(1))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes[2].coordenadaHorizontal").value(3))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes[0].valor").value("barco"))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes[0].barco").doesNotExist())
-                .andExpect(jsonPath("$.commands[1].parametro.length()").value(1))
-                .andExpect(jsonPath("$.commands[1].parametro[0].id").value(pequeno.getId()));
-        assertSame(grande, batalla.getFlotaJugador().buscarBarco(grande.getId()));
+    void ubicacionEnviaDtoPorSseSinDuplicarLaRespuestaHttp() throws Exception {
+        observar();
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL").andExpect(jsonPath("$.commands").isEmpty());
+        Commands envio = ultimoEnvio(conexion, 1);
+        BarcoDto dto = (BarcoDto) parametro(envio, "mostrarBarcoUbicado");
+        assertEquals(grande.getId(), dto.getId());
+        assertEquals(3, dto.getCuadrantes().size());
+        assertEquals(1, dto.getCuadrantes().get(0).getCoordenadaVertical());
+        assertEquals(3, dto.getCuadrantes().get(2).getCoordenadaHorizontal());
+        assertEquals("barco", dto.getCuadrantes().get(0).getValor());
+        assertEquals(1, ((List<?>) parametro(envio, "barcosDisponibles")).size());
+        assertEquals(List.of("colocar"), parametro(envio, "reproducirSonidos"));
         for (int columna = 1; columna <= 3; columna++) {
             assertSame(grande, batalla.getOceanoJugador().getCuadrante(1, columna).getBarco());
         }
     }
 
     @Test
-    void ultimoBarcoTambienSeDibujaYElInicioSeDelegaAlDominio() throws Exception {
-        crearPreparacion();
+    void ultimoBarcoDejaLaBatallaPreparadaYPermiteIniciarElCombate() throws Exception {
+        observar();
         ubicar(grande.getId(), 1, 1, "HORIZONTAL");
-        ubicar(pequeno.getId(), 4, 0, "VERTICAL")
-                .andExpect(jsonPath("$.commands.length()").value(2))
-                .andExpect(jsonPath("$.commands[0].id").value("mostrarBarcoUbicado"))
-                .andExpect(jsonPath("$.commands[0].parametro.id").value(pequeno.getId()))
-                .andExpect(jsonPath("$.commands[0].parametro.cuadrantes[1].coordenadaVertical").value(5))
-                .andExpect(jsonPath("$.commands[1].id").value("barcosDisponibles"))
-                .andExpect(jsonPath("$.commands[1].parametro.length()").value(0));
+        ubicar(pequeno.getId(), 4, 0, "VERTICAL");
+        Commands envio = ultimoEnvio(conexion, 2);
+        assertTrue(((List<?>) parametro(envio, "barcosDisponibles")).isEmpty());
+        assertEquals("Batalla preparada", parametro(envio, "leyenda"));
+        assertEquals(2, envio.getCommands().stream().filter(c -> c.getId().equals("mostrarBarcoUbicado")).count());
         assertTrue(batalla.flotaAmigaUbicada());
-        assertEquals(Batalla.Estados.EN_PREPARACION, batalla.getEstado());
         assertTrue(batalla.getOceanoMaquina().listarCuadrantesOcupados().isEmpty());
-        mvc.perform(post("/cu02/entrarBatalla"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.commands[0].id").value("iniciarBatalla"));
+        mvc.perform(post("/cu02/entrarBatalla")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.commands[0].id").value("iniciarBatalla"))
+                .andExpect(jsonPath("$.commands[0].parametro").value(batalla.getId()));
         assertEquals(Batalla.Estados.EN_COMBATE, batalla.getEstado());
+        verify(conexion).cerrarConexion();
     }
 
     @Test
-    void unIdDeLaFlotaEnemigaSeRechazaSinModificarElOceano() throws Exception {
-        crearPreparacion();
+    void barcoEnemigoNoSeColocaNiNotifica() throws Exception {
+        observar();
         int enemigo = batalla.getFlotaMaquina().getBarcos().get(0).getId();
-        assertNull(batalla.getFlotaJugador().buscarBarco(enemigo));
-        ubicar(enemigo, 1, 1, "HORIZONTAL")
-                .andExpect(jsonPath("$.commands.length()").value(1))
-                .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
+        ubicar(enemigo, 1, 1, "HORIZONTAL").andExpect(jsonPath("$.commands[0].id").value("mensaje"));
         assertTrue(batalla.getOceanoJugador().listarCuadrantesOcupados().isEmpty());
+        verifyNoInteractions(conexion);
     }
 
     @Test
-    void ubicacionesInvalidasDevuelvenMensajeSinDibujarNiColocarParcialmente() throws Exception {
-        crearPreparacion();
-        ubicar(grande.getId(), 5, 5, "HORIZONTAL")
-                .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
-        ubicar(grande.getId(), 6, 0, "HORIZONTAL")
-                .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
+    void ubicacionInvalidaNoNotificaNiColocaParcialmente() throws Exception {
+        observar();
+        ubicar(grande.getId(), 5, 5, "HORIZONTAL").andExpect(jsonPath("$.commands[0].id").value("mensaje"));
+        ubicar(grande.getId(), 6, 0, "HORIZONTAL").andExpect(jsonPath("$.commands[0].id").value("mensaje"));
         assertFalse(grande.estaUbicado());
         assertTrue(batalla.getOceanoJugador().listarCuadrantesOcupados().isEmpty());
+        verifyNoInteractions(conexion);
     }
 
     @Test
-    void sinPreparacionSeleccionadaDevuelveMensajeEnLugarDeErrorDelServidor() throws Exception {
-        ubicar(grande.getId(), 1, 1, "HORIZONTAL")
-                .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
-        mvc.perform(post("/cu02/entrarBatalla"))
-                .andExpect(status().isOk())
+    void sinPreparacionSeleccionadaDevuelveMensaje() throws Exception {
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL").andExpect(jsonPath("$.commands[0].id").value("mensaje"));
+        mvc.perform(post("/cu02/entrarBatalla")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
     }
 
     @Test
-    void reubicarElMismoIdSeRechazaYConservaLosCuadrantesOriginales() throws Exception {
-        crearPreparacion();
+    void reubicarElMismoIdNoNotificaYConservaLaPosicion() throws Exception {
+        observar();
         ubicar(grande.getId(), 1, 1, "HORIZONTAL");
-        ubicar(grande.getId(), 3, 2, "HORIZONTAL")
-                .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
+        clearInvocations(conexion);
+        ubicar(grande.getId(), 3, 2, "HORIZONTAL").andExpect(jsonPath("$.commands[0].id").value("mensaje"));
         assertSame(grande, batalla.getOceanoJugador().getCuadrante(1, 1).getBarco());
         assertNull(batalla.getOceanoJugador().getCuadrante(3, 2).getBarco());
-        assertEquals(3, grande.getCuadrantes().size());
+        verifyNoInteractions(conexion);
     }
 
     @Test
@@ -140,7 +163,81 @@ class PresentadorCU02Test {
                 .param("portaaviones", "0").param("acorazados", "0").param("cruceros", "1")
                 .param("submarinos", "1").param("destructores", "0"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.commands[0].id").value("posicionarBarcos"));
+                .andExpect(jsonPath("$.commands[0].id").value("abrirDespliegue"));
+    }
+
+    @Test
+    void dosSesionesRecibenLaColocacionSinCambiarLaOrientacionDeLaOtra() throws Exception {
+        observar();
+        ConexionNavegador otraConexion = nuevaConexion();
+        PresentadorCU02 otro = new PresentadorCU02(fachada, otraConexion);
+        otro.registrarSSE(batalla.getId());
+        otro.leyenda(Orientacion.VERTICAL);
+        clearInvocations(otraConexion);
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        Commands primero = ultimoEnvio(conexion, 1);
+        Commands segundo = ultimoEnvio(otraConexion, 1);
+        assertEquals("Posicione su Submarino en forma horizontal", parametro(primero, "leyenda"));
+        assertEquals("Posicione su Submarino en forma vertical", parametro(segundo, "leyenda"));
+        assertEquals(List.of("colocar"), parametro(segundo, "reproducirSonidos"));
+    }
+
+    @Test
+    void salirQuitaElObservadorSinAfectarALaOtraSesion() throws Exception {
+        observar();
+        ConexionNavegador otraConexion = nuevaConexion();
+        PresentadorCU02 otro = new PresentadorCU02(fachada, otraConexion);
+        otro.registrarSSE(batalla.getId());
+        otro.finCasoUso(batalla.getId());
+        clearInvocations(otraConexion);
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        ultimoEnvio(conexion, 1);
+        verifyNoInteractions(otraConexion);
+    }
+
+    @Test
+    void retomarReconstruyeLosBarcosSinReproducirElHistorial() throws Exception {
+        observar();
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        clearInvocations(conexion);
+        presentador.registrarSSE(batalla.getId());
+        Commands inicial = ultimoEnvio(conexion, 1);
+        assertEquals(grande.getId(), ((BarcoDto) parametro(inicial, "mostrarBarcoUbicado")).getId());
+        assertEquals(1, ((List<?>) parametro(inicial, "barcosDisponibles")).size());
+        assertTrue(inicial.getCommands().stream().noneMatch(c -> c.getId().equals("reproducirSonidos")));
+        clearInvocations(conexion);
+        ubicar(pequeno.getId(), 4, 0, "VERTICAL");
+        ultimoEnvio(conexion, 1);
+    }
+
+    @Test
+    void volverAlFormularioDejaDeObservarElDespliegue() throws Exception {
+        observar();
+        presentador.panelCU2(null);
+        clearInvocations(conexion);
+        batalla.colocarBarco(grande, batalla.getOceanoJugador().getCuadrante(1, 1), Orientacion.HORIZONTAL);
+        verifyNoInteractions(conexion);
+    }
+
+    @Test
+    void unCierreTardioDeDespliegueNoCierraElCanalDeCombate() throws Exception {
+        observar();
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        ubicar(pequeno.getId(), 4, 0, "VERTICAL");
+        presentador.entrarBatalla();
+        when(conexion.getConexionSSE()).thenReturn(new SseEmitter());
+        clearInvocations(conexion);
+        presentador.finCasoUso(batalla.getId());
+        verifyNoInteractions(conexion);
+    }
+
+    @Test
+    void noPermiteAbrirDespliegueDeUnaBatallaEnCombate() throws Exception {
+        observar();
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        ubicar(pequeno.getId(), 4, 0, "VERTICAL");
+        presentador.entrarBatalla();
+        assertThrows(BatallaNavalException.class, () -> presentador.registrarSSE(batalla.getId()));
     }
 
     private ResultActions crearPreparacion() throws Exception {

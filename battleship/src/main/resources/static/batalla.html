@@ -35,6 +35,8 @@
 
   <script type="module">
     import CommandDispatcher from '/CommandDispatcher.js';
+    import SSECommandDispatcher from '/SSECommandDispatcher.js';
+
     import BattleShipBoard from '/BattleShipBoard.js';
 
     const zonaMensaje = document.getElementById('mensaje');
@@ -66,8 +68,7 @@
     new BattleShipBoard(document.getElementById('tablero'), dispatcherTablero);
 
     const vista = CommandDispatcher.registerView('Batalla', {
-      urlInicio: '/cu03/iniciarBatalla',
-      dataInicio: { idBatalla },
+      urlCierre: '/cu03/finCasoUso?idBatalla=' + encodeURIComponent(idBatalla),
       onException: mostrarMensaje,
       onError: () => mostrarMensaje('No se pudo completar la acción.')
     });
@@ -88,7 +89,21 @@
 
     vista.handler('mensaje', mostrarMensaje);
 
+    // Registra los handlers antes de abrir el canal que trae el tablero inicial.
     CommandDispatcher.startView(vista);
+
+    const conexionSSE = new SSECommandDispatcher(
+      '/cu03/registrarSSE?idBatalla=' + encodeURIComponent(idBatalla),
+      CommandDispatcher,
+      () => mostrarMensaje('Se perdió la conexión con la batalla. Recargá la página para reconectar.')
+    );
+
+    window.addEventListener('pagehide', () => conexionSSE.disconnect());
+  </script>
+  <script type="module">
+    //-------------------------------EXTRAS SONIDOS----------------------------------//
+    import Sonidos from '/Sonidos.js';
+    Sonidos.instalarEnVista();
   </script>
 </body>
 </html>

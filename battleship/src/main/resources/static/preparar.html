@@ -114,6 +114,8 @@
 
   <script type="module">
     import CommandDispatcher from '/CommandDispatcher.js';
+    import SSECommandDispatcher from '/SSECommandDispatcher.js';
+
     import BattleShipBoard from '/BattleShipBoard.js';
 
     const zonaMensaje = document.getElementById('mensaje');
@@ -136,6 +138,7 @@
     };
 
     let idPrimerBarco = -1;
+    let conexionSSE = null;
 
     function mostrarMensaje(texto) {
       zonaMensaje.textContent = texto;
@@ -199,7 +202,7 @@
     });
 
     // Si se entra desde la sala a una batalla en preparación, la URL trae su id.
-    const idBatalla = new URLSearchParams(window.location.search).get('batalla');
+    let idBatalla = new URLSearchParams(window.location.search).get('batalla');
 
     const vista = CommandDispatcher.registerView('Preparar', {
       urlInicio: '/cu02/configurarBatalla',
@@ -232,6 +235,17 @@
       });
     });
 
+    vista.handler('abrirDespliegue', (id) => {
+      idBatalla = id;
+      window.history.replaceState(null, '', '/preparar.html?batalla=' + id);
+      if (conexionSSE) conexionSSE.disconnect();
+      conexionSSE = new SSECommandDispatcher(
+        '/cu02/registrarSSE?idBatalla=' + id,
+        CommandDispatcher,
+        () => mostrarMensaje('Se perdió la conexión con el despliegue. Recargá la página para reconectar.')
+      );
+    });
+
     vista.handler('posicionarBarcos', () => {
       mostrarPaso('despliegue');
     });
@@ -244,7 +258,6 @@
       listaBarcos.replaceChildren();
       barcos.forEach(dibujarBarco);
       idPrimerBarco = barcos.length > 0 ? barcos[0].id : -1;
-      pedirLeyenda();
     });
 
     vista.handler('mostrarBarcoUbicado', (barco) => {
@@ -262,6 +275,18 @@
     });
 
     CommandDispatcher.startView(vista);
+
+    window.addEventListener('pagehide', () => {
+      if (conexionSSE) conexionSSE.disconnect();
+      if (idBatalla) {
+        CommandDispatcher.notifyClose('/cu02/finCasoUso?idBatalla=' + idBatalla);
+      }
+    });
+  </script>
+  <script type="module">
+    //-------------------------------EXTRAS SONIDOS----------------------------------//
+    import Sonidos from '/Sonidos.js';
+    Sonidos.instalarEnVista();
   </script>
 </body>
 </html>
