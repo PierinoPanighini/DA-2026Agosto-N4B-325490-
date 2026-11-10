@@ -3,11 +3,16 @@ package uy.edu.ort.battleshipdemo.presentador;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.annotation.PreDestroy;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.annotation.SessionScope;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 
 import uy.edu.ort.battleshipdemo.modelo.Barco;
@@ -17,25 +22,35 @@ import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
 import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.Orientacion;
+import uy.edu.ort.battleshipdemo.observador.Observable;
+import uy.edu.ort.battleshipdemo.observador.Observador;
 
 @RestController
 @SessionScope
 @RequestMapping("/cu02")
-public class PresentadorCU02 {
+public class PresentadorCU02 implements Observador {
 
     private Fachada fachada;
     private Batalla enPreparacion;
+    private ConexionNavegador conexion;
+    private SseEmitter emisorDespliegue;
+    private Orientacion orientacionElegida = Orientacion.HORIZONTAL;
 
-    public PresentadorCU02(Fachada fachada) {
+    public PresentadorCU02(Fachada fachada, ConexionNavegador conexion) {
         this.fachada = fachada;
+        this.conexion = conexion;
     }
 
     // -------------------------------PARTE 1
     @PostMapping("/configurarBatalla")
     public Commands panelCU2(@RequestParam(value = "idBatalla", required = false) Integer idBatalla) throws BatallaNavalException {
-        if(idBatalla != null) { enPreparacion = fachada.buscarBatalla(idBatalla);
-            return mostrarDespliegue();
+        if (idBatalla != null) {
+            Batalla seleccionada = buscarPreparacion(idBatalla);
+            salir();
+            enPreparacion = seleccionada;
+            return Commands.create(abrirDespliegue());
         }
+        salir();
         return Commands.create(listaTacticas(), listaTiposBarco());
     }
 
@@ -47,31 +62,105 @@ public class PresentadorCU02 {
             @RequestParam int submarinos, @RequestParam int destructores) {
 
         try {
-            enPreparacion = fachada.prepararBatalla(nombre, tactica, filas, columnas,
+            Batalla nueva = fachada.prepararBatalla(nombre, tactica, filas, columnas,
                     portaaviones, acorazados, cruceros, submarinos, destructores);
+            salir();
+            enPreparacion = nueva;
         } catch (BatallaNavalException ex) {
             return Commands.create(mensaje(ex.getMessage()));
         }
 
-        return mostrarDespliegue();
+        return Commands.create(abrirDespliegue());
 
     }
 
     // ---------------------------------PARTE 2
 
+    @GetMapping(value = "/registrarSSE", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter registrarSSE(@RequestParam("idBatalla") int idBatalla) throws BatallaNavalException {
+        Batalla seleccionada = buscarPreparacion(idBatalla);
+        salir();
+        enPreparacion = seleccionada;
+        orientacionElegida = Orientacion.HORIZONTAL;
+        enPreparacion.agregarObservador(this);
+        conexion.conectarSSE();
+        emisorDespliegue = conexion.getConexionSSE();
+        SseEmitter emisor = emisorDespliegue;
+        emisor.onCompletion(() -> finalizarConexion(emisor));
+        emisor.onTimeout(() -> finalizarConexion(emisor));
+        emisor.onError(error -> finalizarConexion(emisor));
+        conexion.enviarJSON(mostrarDespliegue());
+        return emisor;
+    }
+
+    private Batalla buscarPreparacion(int idBatalla) throws BatallaNavalException {
+        Batalla batalla = fachada.buscarBatalla(idBatalla);
+        if (!batalla.estaEnPreparacion()) {
+            throw new BatallaNavalException("Solo puede desplegar barcos en una batalla en preparacion.");
+        }
+        return batalla;
+    }
+
+    private void finalizarConexion(SseEmitter emisor) {
+        if (emisorDespliegue == emisor) {
+            salir();
+        }
+    }
+
+    @PostMapping("/finCasoUso")
+    public void finCasoUso(@RequestParam("idBatalla") int idBatalla) {
+        if (enPreparacion != null && enPreparacion.getId() == idBatalla) {
+            salir();
+        }
+    }
+
+    @PreDestroy
+    public void salir() {
+        if (enPreparacion != null) {
+            enPreparacion.quitarObservador(this);
+            enPreparacion = null;
+        }
+        SseEmitter anterior = emisorDespliegue;
+        emisorDespliegue = null;
+        // CU02 y CU03 comparten la conexion de sesion: no cerrar un canal de combate nuevo.
+        if (anterior != null && conexion.getConexionSSE() == anterior) {
+            conexion.cerrarConexion();
+        }
+    }
+
+    private Command abrirDespliegue() {
+        return new Command("abrirDespliegue", enPreparacion.getId());
+    }
+
     private Commands mostrarDespliegue() {
         Oceano oceano = enPreparacion.getOceanoJugador();
         InicializarDto tablero = new InicializarDto(oceano.getFilas(), oceano.getColumnas(),
                 "/cu02/ubicarBarco", "/cu02/aguasEnemigas");
-       Commands comandos = Commands.create(posicionarBarcos(), barcosDisponibles(),
+        Commands comandos = Commands.create(posicionarBarcos(),
                 new Command("inicializar", tablero),
                 new Command("lugarCombate", enPreparacion.getLugar()));
-        for (Barco barco : enPreparacion.getFlotaJugador().getBarcos()) { //si hay barcos ubicados los muestro
+        agregarSituacionDespliegue(comandos);
+        return comandos;
+    }
+
+    private void agregarSituacionDespliegue(Commands comandos) {
+        for (Barco barco : enPreparacion.getFlotaJugador().getBarcos()) {
             if (barco.estaUbicado()) {
                 comandos.add(mostrarBarcoUbicado(barco));
             }
         }
-        return comandos;
+        comandos.add(barcosDisponibles());
+        comandos.add(new Command("leyenda", textoLeyenda(orientacionElegida)));
+    }
+
+    @Override
+    public void actualizar(Object evento, Observable origen) {
+        if (evento == Batalla.Eventos.BARCO_COLOCADO && origen == enPreparacion) {
+            Commands comandos = Commands.create();
+            agregarSituacionDespliegue(comandos);
+            comandos.add(sonidoColocacion());
+            conexion.enviarJSON(comandos);
+        }
     }
 
     @PostMapping("/ubicarBarco")
@@ -87,8 +176,10 @@ public class PresentadorCU02 {
                 throw new BatallaNavalException("No se encontro ese barco en la flota del jugador.");
             }
             Cuadrante proa = enPreparacion.getOceanoJugador().getCuadrante(fila, columna);
+            orientacionElegida = orientacion;
             enPreparacion.colocarBarco(barco, proa, orientacion);
-            return Commands.create(mostrarBarcoUbicado(barco), barcosDisponibles());
+            // El evento BARCO_COLOCADO ya actualizo a todos los observadores por SSE.
+            return Commands.create();
         } catch (BatallaNavalException ex) {
             return Commands.create(mensaje(ex.getMessage()));
         }
@@ -109,8 +200,10 @@ public class PresentadorCU02 {
     }
 
     @PostMapping("/leyenda")
-    public Commands leyenda(@RequestParam("orientacion") Orientacion orientacion) {
-        return Commands.create(new Command("leyenda", textoLeyenda(orientacion)));
+    public Commands leyenda(@RequestParam("orientacion") Orientacion orientacion) throws BatallaNavalException {
+        validarBatallaSeleccionada();
+        orientacionElegida = orientacion;
+        return Commands.create(new Command("leyenda", textoLeyenda(orientacionElegida)));
     }
 
     @PostMapping("/entrarBatalla")
@@ -118,7 +211,9 @@ public class PresentadorCU02 {
         try {
             validarBatallaSeleccionada();
             enPreparacion.iniciarCombate();
-            return Commands.create(iniciarBatalla());
+            Command comando = iniciarBatalla();
+            salir();
+            return Commands.create(comando);
         } catch (BatallaNavalException ex) {
             return Commands.create(mensaje(ex.getMessage()));
         }
@@ -163,6 +258,8 @@ public class PresentadorCU02 {
         return new Command("mostrarBarcoUbicado", new BarcoDto(barco));
     }
 
-
-
+    //-------------------------------EXTRAS SONIDOS----------------------------------//
+    private Command sonidoColocacion() {
+        return new Command("reproducirSonidos", List.of("colocar"));
+    }
 }

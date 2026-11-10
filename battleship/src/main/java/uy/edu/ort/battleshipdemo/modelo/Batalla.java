@@ -10,8 +10,9 @@ import uy.edu.ort.battleshipdemo.modelo.Maquina;
 import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.Ronda;
 import uy.edu.ort.battleshipdemo.modelo.Tactica;
+import uy.edu.ort.battleshipdemo.observador.Observable;
 
-public class Batalla {
+public class Batalla extends Observable {
 
     private static int proximoId = 1;
 
@@ -56,9 +57,15 @@ public class Batalla {
         TERMINADA
     }
 
+    public enum Eventos {
+        RONDA_COMPLETADA,
+        BARCO_COLOCADO
+    }
+
     public void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
             throws BatallaNavalException {
         estado.colocarBarco(barco, proa, orientacion);
+        notificar(Eventos.BARCO_COLOCADO);
     }
 
     public void colocarFlotaMaquina() throws BatallaNavalException {
@@ -82,6 +89,7 @@ public class Batalla {
                     "La ronda indicada ya no corresponde. Actualice la informacion de la batalla.");
         }
         estado.disparar(fila, columna);
+        notificar(Eventos.RONDA_COMPLETADA);
     }
 
     public boolean fueGanada() {
