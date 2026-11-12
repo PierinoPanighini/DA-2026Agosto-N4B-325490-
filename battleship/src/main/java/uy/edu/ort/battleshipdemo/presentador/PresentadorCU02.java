@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.annotation.SessionScope;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-
 import uy.edu.ort.battleshipdemo.modelo.Barco;
 import uy.edu.ort.battleshipdemo.modelo.Batalla;
 import uy.edu.ort.battleshipdemo.modelo.Cuadrante;
@@ -43,7 +42,8 @@ public class PresentadorCU02 implements Observador {
 
     // -------------------------------PARTE 1
     @PostMapping("/configurarBatalla")
-    public Commands panelCU2(@RequestParam(value = "idBatalla", required = false) Integer idBatalla) throws BatallaNavalException {
+    public Commands panelCU2(@RequestParam(value = "idBatalla", required = false) Integer idBatalla)
+            throws BatallaNavalException {
         if (idBatalla != null) {
             Batalla seleccionada = buscarPreparacion(idBatalla);
             salir();
@@ -122,7 +122,8 @@ public class PresentadorCU02 implements Observador {
         }
         SseEmitter anterior = emisorDespliegue;
         emisorDespliegue = null;
-        // CU02 y CU03 comparten la conexion de sesion: no cerrar un canal de combate nuevo.
+        // CU02 y CU03 comparten la conexion de sesion: no cerrar un canal de combate
+        // nuevo.
         if (anterior != null && conexion.getConexionSSE() == anterior) {
             conexion.cerrarConexion();
         }
@@ -155,11 +156,19 @@ public class PresentadorCU02 implements Observador {
 
     @Override
     public void actualizar(Object evento, Observable origen) {
-        if (evento == Batalla.Eventos.BARCO_COLOCADO && origen == enPreparacion) {
+        if (origen != enPreparacion) {
+            return;
+        }
+
+        if (evento == Batalla.Eventos.BARCO_COLOCADO) {
             Commands comandos = Commands.create();
             agregarSituacionDespliegue(comandos);
             comandos.add(sonidoColocacion());
             conexion.enviarJSON(comandos);
+        } else if (evento == Batalla.Eventos.COMBATE_INICIADO) {
+            Commands comandos = Commands.create(iniciarBatalla());
+            conexion.enviarJSON(comandos);
+            salir();
         }
     }
 
@@ -210,10 +219,8 @@ public class PresentadorCU02 implements Observador {
     public Commands entrarBatalla() {
         try {
             validarBatallaSeleccionada();
-            enPreparacion.iniciarCombate();
-            Command comando = iniciarBatalla();
-            salir();
-            return Commands.create(comando);
+            fachada.iniciarCombate(enPreparacion.getId());
+            return Commands.create();
         } catch (BatallaNavalException ex) {
             return Commands.create(mensaje(ex.getMessage()));
         }
@@ -253,12 +260,12 @@ public class PresentadorCU02 implements Observador {
         return new Command("iniciarBatalla", enPreparacion.getId());
     }
 
-
     private Command mostrarBarcoUbicado(Barco barco) {
         return new Command("mostrarBarcoUbicado", new BarcoDto(barco));
     }
 
-    //-------------------------------EXTRAS SONIDOS----------------------------------//
+    // -------------------------------EXTRAS
+    // SONIDOS----------------------------------//
     private Command sonidoColocacion() {
         return new Command("reproducirSonidos", List.of("colocar"));
     }

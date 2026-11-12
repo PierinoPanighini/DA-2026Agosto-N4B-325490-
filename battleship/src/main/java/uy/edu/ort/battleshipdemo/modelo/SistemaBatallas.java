@@ -20,13 +20,14 @@ public class SistemaBatallas {
 
      // ---------------------------METODOS CU03--------------------------------------------//
 
-    public Batalla disparar(int idBatalla,int fila, int columna, int numeroRondaEsperado) throws BatallaNavalException {
-
-    Batalla batalla = buscarBatalla(idBatalla);
-
-    batalla.generarDisparo(fila, columna, numeroRondaEsperado);
-    return batalla;
-}
+    public Batalla disparar(int idBatalla, int fila, int columna, int numeroRondaEsperado)
+            throws BatallaNavalException {
+        Batalla batalla = buscarBatalla(idBatalla);
+        batalla.generarDisparo(fila, columna, numeroRondaEsperado);
+        // La ronda completa ya contiene la integridad y el resultado final actualizados.
+        Fachada.getInstancia().notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
+        return batalla;
+    }
 
     // ---------------------------METODOS CU02--------------------------------------------//
     // hacer batalla para preparacion
@@ -82,6 +83,13 @@ public class SistemaBatallas {
             return nueva;
   
 
+    }
+
+    public Batalla iniciarCombate(int idBatalla) throws BatallaNavalException {
+        Batalla batalla = buscarBatalla(idBatalla);
+        batalla.iniciarCombate();
+        Fachada.getInstancia().notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
+        return batalla;
     }
 
     private boolean nombreYaUsado(String nombre) {
@@ -171,6 +179,7 @@ public class SistemaBatallas {
     // Gestion de batallas
     public void registrarBatalla(Batalla batalla) {
         this.batallas.add(batalla);
+        Fachada.getInstancia().notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
     }
 
 

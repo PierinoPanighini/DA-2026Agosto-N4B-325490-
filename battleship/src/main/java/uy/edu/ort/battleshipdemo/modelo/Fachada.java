@@ -2,9 +2,15 @@ package uy.edu.ort.battleshipdemo.modelo;
 
 import java.util.List;
 
+import uy.edu.ort.battleshipdemo.observador.Observable;
 
 
-public class Fachada {
+
+public class Fachada extends Observable {
+    public enum Eventos {
+        BATALLAS_ACTUALIZADAS
+    }
+
     private static Fachada instanciaFachada;
 
 
@@ -66,6 +72,10 @@ public class Fachada {
             }
 
 
+
+    public Batalla iniciarCombate(int idBatalla) throws BatallaNavalException {
+        return sistemaBatallas.iniciarCombate(idBatalla);
+    }
 
     //CU03
     public Batalla disparar(

@@ -2,18 +2,17 @@ package uy.edu.ort.battleshipdemo.observador;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Observable
  */
 public class Observable {
 
-    private List<Observador> observadores = new ArrayList<>();
+    private CopyOnWriteArrayList<Observador> observadores = new CopyOnWriteArrayList<>();
 
     public void agregarObservador(Observador obs){
-        if(!observadores.contains(obs)){
-            observadores.add(obs);
-        }
+        observadores.addIfAbsent(obs);
     }
     public void quitarObservador(Observador obs){
         observadores.remove(obs);

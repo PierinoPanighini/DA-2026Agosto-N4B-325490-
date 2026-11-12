@@ -2,6 +2,7 @@ package uy.edu.ort.battleshipdemo.modelo;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -266,6 +267,47 @@ class BatallaEstadosTest {
             inicio.countDown();
             ejecutor.shutdownNow();
         }
+    }
+
+    @Test
+    void combateIniciadoSeNotificaUnaVezConLasFlotasYaColocadas() throws Exception {
+        Batalla batalla = crearBatalla();
+        List<Batalla.Estados> estadosAlAvisar = new ArrayList<>();
+        List<Boolean> flotasListasAlAvisar = new ArrayList<>();
+        batalla.agregarObservador((evento, origen) -> {
+            if (evento == Batalla.Eventos.COMBATE_INICIADO) {
+                estadosAlAvisar.add(batalla.getEstado());
+                flotasListasAlAvisar.add(batalla.getFlotaJugador().estaCompletamenteUbicada()
+                        && batalla.getFlotaMaquina().estaCompletamenteUbicada());
+            }
+        });
+        assertThrows(BatallaNavalException.class, batalla::iniciarCombate);
+        assertTrue(estadosAlAvisar.isEmpty());
+        ubicarFlotaHumana(batalla);
+        batalla.iniciarCombate();
+        assertEquals(List.of(Batalla.Estados.EN_COMBATE), estadosAlAvisar);
+        assertEquals(List.of(true), flotasListasAlAvisar);
+        assertThrows(BatallaNavalException.class, batalla::iniciarCombate);
+        assertEquals(1, estadosAlAvisar.size());
+    }
+
+    @Test
+    void terminarAvisaConLaRondaFinalGuardadaYNoVuelveAAnunciarElInicio() throws Exception {
+        Batalla batalla = crearBatallaEnCombate(5);
+        List<Object> eventos = new ArrayList<>();
+        List<Integer> rondasAlTerminar = new ArrayList<>();
+        batalla.agregarObservador((evento, origen) -> {
+            eventos.add(evento);
+            if (evento == Batalla.Eventos.BATALLA_TERMINADA) {
+                rondasAlTerminar.add(batalla.getRondas().size());
+            }
+        });
+        batalla.generarDisparo(2, 0, 1);
+        batalla.generarDisparo(2, 2, 2);
+        assertEquals(List.of(Batalla.Eventos.RONDA_COMPLETADA, Batalla.Eventos.RONDA_COMPLETADA,
+                Batalla.Eventos.BATALLA_TERMINADA), eventos);
+        assertEquals(List.of(2), rondasAlTerminar);
+        assertTrue(batalla.fueGanada());
     }
 
     private boolean iniciarAlMismoTiempo(Batalla batalla, CountDownLatch inicio) throws InterruptedException {

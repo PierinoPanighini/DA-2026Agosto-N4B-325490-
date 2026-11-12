@@ -59,7 +59,9 @@ public class Batalla extends Observable {
 
     public enum Eventos {
         RONDA_COMPLETADA,
-        BARCO_COLOCADO
+        BARCO_COLOCADO,
+        COMBATE_INICIADO,
+        BATALLA_TERMINADA
     }
 
     public void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
@@ -90,6 +92,9 @@ public class Batalla extends Observable {
         }
         estado.disparar(fila, columna);
         notificar(Eventos.RONDA_COMPLETADA);
+        if (estado.getEstado() == Estados.TERMINADA) {
+            notificar(Eventos.BATALLA_TERMINADA);
+        }
     }
 
     public boolean fueGanada() {
@@ -110,6 +115,7 @@ public class Batalla extends Observable {
     public synchronized void iniciarCombate()
             throws BatallaNavalException {
         estado.iniciarCombate();
+        notificar(Eventos.COMBATE_INICIADO);
     }
 
     // SETTERS
