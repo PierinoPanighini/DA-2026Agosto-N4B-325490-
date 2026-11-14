@@ -1,17 +1,20 @@
 package uy.edu.ort.battleshipdemo.modelo;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mockConstruction;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 
 class DespliegueMaquinaTest {
 
@@ -27,18 +30,20 @@ class DespliegueMaquinaTest {
     }
 
     @Test
-    void validacionInformaQueFlotaEstaPendienteYNoIniciaElCombate() throws Exception {
+    void inicioExigeLaFlotaHumanaYCompletaElDespliegueDeLaMaquina() throws Exception {
         Batalla batalla = crearBatalla();
         BatallaNavalException faltaJugador = assertThrows(BatallaNavalException.class,
-                batalla::validarFlotasColocadas);
-        assertTrue(faltaJugador.getMessage().contains("jugador"));
-        ubicarFlotaHumana(batalla);
-        BatallaNavalException faltaMaquina = assertThrows(BatallaNavalException.class,
-                batalla::validarFlotasColocadas);
-        assertTrue(faltaMaquina.getMessage().contains("maquina"));
-        batalla.colocarFlotaMaquina();
-        assertDoesNotThrow(batalla::validarFlotasColocadas);
+                batalla::iniciarCombate);
+        assertTrue(faltaJugador.getMessage().contains("Debe posicionar todos sus barcos"));
         assertEquals(Batalla.Estados.EN_PREPARACION, batalla.getEstado());
+        assertTrue(batalla.getOceanoMaquina().listarCuadrantesOcupados().isEmpty());
+        ubicarFlotaHumana(batalla);
+        assertFalse(batalla.getFlotaMaquina().estaCompletamenteUbicada());
+        batalla.iniciarCombate();
+        assertTrue(batalla.getFlotaJugador().estaCompletamenteUbicada());
+        assertTrue(batalla.getFlotaMaquina().estaCompletamenteUbicada());
+        verificarDistribucion(batalla.getMaquina());
+        assertEquals(Batalla.Estados.EN_COMBATE, batalla.getEstado());
         assertTrue(batalla.getRondas().isEmpty());
         assertTrue(batalla.getBajasAmigas().isEmpty());
         assertTrue(batalla.getBajasEnemigas().isEmpty());
@@ -89,14 +94,40 @@ class DespliegueMaquinaTest {
     }
 
     @Test
-    void unaFlotaImposibleAgotaLosIntentosSinDejarColocacionesParciales() throws BatallaNavalException {
-        Maquina maquina = new Maquina(crearFlota(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-                new Oceano(6, 6), new TacticaSecuencial());
-        // Con separacion incluso diagonal solo entran nueve barcos de una celda en 6 x 6.
-        assertTimeoutPreemptively(Duration.ofSeconds(10),
-                () -> assertThrows(BatallaNavalException.class, maquina::colocarFlota));
-        assertTrue(maquina.getOceano().listarCuadrantesOcupados().isEmpty());
-        for (Barco barco : maquina.getFlota().getBarcos()) {
+    void retrocesoCompletaLaFlotaCuandoElAzarRepiteSiempreLaMismaPosicion() throws Exception {
+        Maquina maquina = new Maquina(crearFlota(3, 2, 1), new Oceano(6, 6),
+                new TacticaSecuencial());
+        List<Barco> originales = maquina.getFlota().getBarcos();
+        try (MockedConstruction<Random> azarFijo = mockConstruction(Random.class)) {
+            maquina.colocarFlota();
+            assertEquals(1, azarFijo.constructed().size());
+        }
+        assertEquals(originales, maquina.getFlota().getBarcos());
+        verificarDistribucion(maquina);
+    }
+
+    @Test
+    void unaColocacionRechazadaAlFinalNoDejaLosBarcosAnterioresColocados() throws Exception {
+        Maquina maquina = new Maquina(crearFlota(3, 2), new Oceano(6, 6),
+                new TacticaSecuencial());
+        Barco pequeno = maquina.getFlota().getBarcos().get(1);
+        maquina.getOceano().colocarBarco(pequeno,
+                maquina.getOceano().getCuadrante(4, 4), Orientacion.VERTICAL);
+        List<Cuadrante> ocupados = maquina.getOceano().listarCuadrantesOcupados();
+        assertThrows(BatallaNavalException.class, maquina::colocarFlota);
+        assertEquals(ocupados, maquina.getOceano().listarCuadrantesOcupados());
+        assertFalse(maquina.getFlota().getBarcos().get(0).estaUbicado());
+        assertEquals(Orientacion.VERTICAL, pequeno.getOrientacion());
+    }
+
+    @Test
+    void unaFlotaDemasiadoDensaSeRechazaAntesDelDespliegue() throws BatallaNavalException {
+        Flota flota = crearFlota(1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+        Oceano oceano = new Oceano(6, 6);
+        assertThrows(BatallaNavalException.class,
+                () -> new Maquina(flota, oceano, new TacticaSecuencial()));
+        assertTrue(oceano.listarCuadrantesOcupados().isEmpty());
+        for (Barco barco : flota.getBarcos()) {
             assertFalse(barco.estaUbicado());
             assertNull(barco.getOrientacion());
         }
@@ -121,15 +152,14 @@ class DespliegueMaquinaTest {
     }
 
     @Test
-    void barcosInvalidosNoModificanElOceanoNiLaFlota() throws BatallaNavalException {
-        for (Barco invalido : List.of(new Barco(null), new Barco(new TipoBarco("Invalido", 0)),
-                new Barco(new TipoBarco("Demasiado largo", 13)))) {
-            Maquina maquina = new Maquina(new Flota(List.of(invalido)), new Oceano(6, 6),
-                    new TacticaSecuencial());
-            assertThrows(BatallaNavalException.class, maquina::colocarFlota);
-            assertFalse(invalido.estaUbicado());
-            assertTrue(maquina.getOceano().listarCuadrantesOcupados().isEmpty());
-        }
+    void unBarcoMasLargoQueElOceanoNoDejaUnDespliegueParcial() throws BatallaNavalException {
+        Barco barco = new Barco(new TipoBarco("Demasiado largo", 13));
+        Maquina maquina = new Maquina(new Flota(List.of(barco)), new Oceano(12, 12),
+                new TacticaSecuencial());
+        BatallaNavalException error = assertThrows(BatallaNavalException.class, maquina::colocarFlota);
+        assertTrue(error.getMessage().contains("Cambie la flota o las dimensiones"));
+        assertFalse(barco.estaUbicado());
+        assertTrue(maquina.getOceano().listarCuadrantesOcupados().isEmpty());
     }
 
     @Test
@@ -210,7 +240,7 @@ class DespliegueMaquinaTest {
         for (Barco barco : maquina.getFlota().getBarcos()) {
             assertEquals(barco.getTamanio(), barco.getCuadrantes().size());
             assertNotNull(barco.getOrientacion());
-            Cuadrante proa = barco.getCuadrantes().get(0);
+            Cuadrante proa = barco.getProa();
             for (int i = 0; i < barco.getTamanio(); i++) {
                 int fila = proa.getFila();
                 int columna = proa.getColumna();

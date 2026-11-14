@@ -11,6 +11,7 @@ import uy.edu.ort.battleshipdemo.modelo.Oceano;
 import uy.edu.ort.battleshipdemo.modelo.Ronda;
 import uy.edu.ort.battleshipdemo.modelo.Tactica;
 import uy.edu.ort.battleshipdemo.observador.Observable;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 
 public class Batalla extends Observable {
 
@@ -22,32 +23,30 @@ public class Batalla extends Observable {
     private Maquina maquina;
     private EstadoBatalla estado;
     private List<Ronda> rondas;
-    private List<Barco> bajasEnemigas;
-    private List<Barco> bajasAmigas;
 
-    public Batalla(String lugar, Jugador jugador, Maquina maquina) {
-        maquina.getTactica().configurarObjetivo(jugador.getOceano());
-        this.id = generarId();
+    public Batalla(String lugar, Jugador jugador, Maquina maquina) throws BatallaNavalException {
         this.lugar = lugar;
         this.jugador = jugador;
         this.maquina = maquina;
         this.estado = new EstadoEnPreparacion(this);
         this.rondas = new ArrayList<>();
-        this.bajasEnemigas = new ArrayList<>();
-        this.bajasAmigas = new ArrayList<>();
+        validar();
+        maquina.getTactica().configurarObjetivo(jugador.getOceano());
+        this.id = generarId();
     }
 
-    public void validarBatalla() {
+    // Comprueba que haya dos participantes con flotas y oceanos independientes.
+    private void validar() throws BatallaNavalException {
         if (this.jugador == null || this.maquina == null) {
-            throw new IllegalArgumentException("La batalla debe tener un jugador y una maquina.");
+            throw new BatallaNavalException("La batalla debe tener un jugador y una maquina.");
         }
         if (this.jugador.getFlota() == this.maquina.getFlota()
                 || this.jugador.getOceano() == this.maquina.getOceano()) {
-            throw new IllegalArgumentException("Los participantes deben tener flotas y oceanos independientes.");
+            throw new BatallaNavalException("Los participantes deben tener flotas y oceanos independientes.");
         }
     }
 
-    private static synchronized int generarId() {
+    private static int generarId() {
         return proximoId++;
     }
 
@@ -64,8 +63,17 @@ public class Batalla extends Observable {
         BATALLA_TERMINADA
     }
 
-    public void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion)
-            throws BatallaNavalException {
+    // Delega en el jugador la busqueda de un barco propio por su identificador.
+    public Barco buscarBarcoJugador(int idBarco) throws BatallaNavalException {
+        return jugador.buscarBarco(idBarco);
+    }
+
+    // Delega en el jugador la consulta de un cuadrante de su oceano.
+    public Cuadrante getCuadranteJugador(int fila, int columna) throws BatallaNavalException {
+        return jugador.getCuadrante(fila, columna);
+    }
+
+    public void colocarBarco(Barco barco, Cuadrante proa, Orientacion orientacion) throws BatallaNavalException {
         estado.colocarBarco(barco, proa, orientacion);
         notificar(Eventos.BARCO_COLOCADO);
     }
@@ -74,37 +82,26 @@ public class Batalla extends Observable {
         estado.colocarFlotaMaquina();
     }
 
-    public void validarFlotasColocadas() throws BatallaNavalException {
-        if (!jugador.getFlota().estaCompletamenteUbicada()) {
-            throw new BatallaNavalException("Faltan barcos por colocar en la flota del jugador.");
-        }
-        if (!maquina.getFlota().estaCompletamenteUbicada()) {
-            throw new BatallaNavalException("Faltan barcos por colocar en la flota de la maquina.");
-        }
-    }
-
-    // La solicitud debe traer el numero de ronda que estaba mostrando la vista.
-    public synchronized void generarDisparo(int fila, int columna, int numeroRondaEsperado)
-            throws BatallaNavalException {
-        if (estado.getEstado() == Estados.EN_COMBATE && numeroRondaEsperado != getNumeroProximaRonda()) {
-            throw new BatallaNavalException(
-                    "La ronda indicada ya no corresponde. Actualice la informacion de la batalla.");
-        }
+    // Solicita al estado resolver el disparo y comunica la ronda completada y el eventual fin.
+    public void generarDisparo(int fila, int columna) throws BatallaNavalException {
         estado.disparar(fila, columna);
+        //SI SE EFECTUO BIEN AHI ACTUALIZO LOS DISPAROS Y SI TERMINA TAMBIEN LOS TOTALES DE BATALLS DE LA SALA DE OPERACIONES
         notificar(Eventos.RONDA_COMPLETADA);
         if (estado.getEstado() == Estados.TERMINADA) {
             notificar(Eventos.BATALLA_TERMINADA);
         }
     }
 
+    // Determina si la batalla terminada tiene mas bajas enemigas que propias.
     public boolean fueGanada() {
         return estado.getEstado() == Estados.TERMINADA
-                && bajasEnemigas.size() > bajasAmigas.size();
+                && maquina.contarBajas() > jugador.contarBajas();
     }
 
+    // Determina si la batalla terminada tiene mas bajas propias que enemigas.
     public boolean fuePerdida() {
         return estado.getEstado() == Estados.TERMINADA
-                && bajasAmigas.size() > bajasEnemigas.size();
+                && jugador.contarBajas() > maquina.contarBajas();
     }
 
     // sobre ESTADO de batalla: saber si está en preparación
@@ -112,9 +109,9 @@ public class Batalla extends Observable {
         return estado.getEstado() == Estados.EN_PREPARACION;
     }
 
-    public synchronized void iniciarCombate()
-            throws BatallaNavalException {
+    public void iniciarCombate() throws BatallaNavalException {
         estado.iniciarCombate();
+        // Avisa a los presentadores de esta preparacion para que pasen a la pantalla de combate.
         notificar(Eventos.COMBATE_INICIADO);
     }
 
@@ -172,7 +169,7 @@ public class Batalla extends Observable {
         return maquina.getOceano();
     }
 
-    public synchronized Estados getEstado() {
+    public Estados getEstado() {
         return estado.getEstado();
     }
 
@@ -180,12 +177,14 @@ public class Batalla extends Observable {
         return rondas;
     }
 
+    // Obtiene las bajas enemigas a traves de la maquina y su flota.
     public List<Barco> getBajasEnemigas() {
-        return bajasEnemigas;
+        return maquina.listarBajas();
     }
 
+    // Obtiene las bajas amigas a traves del jugador y su flota.
     public List<Barco> getBajasAmigas() {
-        return bajasAmigas;
+        return jugador.listarBajas();
     }
 
     public boolean flotaAmigaUbicada() {

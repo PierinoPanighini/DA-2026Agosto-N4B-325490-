@@ -14,6 +14,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import uy.edu.ort.battleshipdemo.config.ManejadorGlobalExcepciones;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
+import uy.edu.ort.battleshipdemo.modelo.Batalla;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.BatallaDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.SalaDto;
 
 class PresentadorCU01Test {
     private Fachada fachada;
@@ -50,13 +53,29 @@ class PresentadorCU01Test {
     }
 
     @Test
-    void canalEnviaListadoYEstadisticasIniciales() {
+    void canalEnviaListadoYEstadisticasIniciales() throws Exception {
         presentador.registrarSSE();
         SalaDto sala = ultimoEnvio(conexion);
         assertEquals(4, sala.getBatallas().size());
         assertEquals(1, sala.getGanadas());
         assertEquals(1, sala.getPerdidas());
         assertEquals("50%", sala.getExito());
+        assertEquals("(1 de 2 batallas)", sala.getDetalleExito());
+        BatallaDto primera = sala.getBatallas().get(0);
+        assertEquals("Bahia Serena", primera.getLugar());
+        assertEquals("8 x 8", primera.getDimensiones());
+        assertEquals("En preparación", primera.getEstado());
+        assertEquals("5 / 5", primera.getIntegridadPropia());
+        assertEquals("5 / 5", primera.getIntegridadEnemiga());
+        assertEquals("En combate", sala.getBatallas().get(1).getEstado());
+        assertEquals("Ganada", sala.getBatallas().get(2).getEstado());
+        assertEquals("Perdida", sala.getBatallas().get(3).getEstado());
+
+        mvc.perform(post("/cu01/inicializar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.commands[0].id").value("sala"))
+                .andExpect(jsonPath("$.commands[0].parametro.detalleExito").value("(1 de 2 batallas)"))
+                .andExpect(jsonPath("$.commands[0].parametro.batallas[0].integridadPropia").value("5 / 5"));
     }
 
     @Test
@@ -104,6 +123,31 @@ class PresentadorCU01Test {
         fachada.notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
         ultimoEnvio(conexion);
         verify(conexion, never()).cerrarConexion();
+    }
+
+    @Test
+    void avisoReconstruyeLosDatosPreparadosDespuesDeUnaVictoria() throws Exception {
+        presentador.registrarSSE();
+        clearInvocations(conexion);
+        Batalla combate = fachada.listarBatallas().stream()
+                .filter(batalla -> batalla.getEstado() == Batalla.Estados.EN_COMBATE)
+                .findFirst().orElseThrow();
+        int[][] objetivos = {{2, 3}, {2, 4}, {5, 1}, {5, 2}};
+        for (int[] objetivo : objetivos) {
+            combate.generarDisparo(objetivo[0], objetivo[1]);
+        }
+
+        fachada.notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
+        SalaDto sala = ultimoEnvio(conexion);
+        assertEquals(2, sala.getGanadas());
+        assertEquals(1, sala.getPerdidas());
+        assertEquals("67%", sala.getExito());
+        assertEquals("(2 de 3 batallas)", sala.getDetalleExito());
+        BatallaDto fila = sala.getBatallas().stream()
+                .filter(batalla -> batalla.getId() == combate.getId())
+                .findFirst().orElseThrow();
+        assertEquals("Ganada", fila.getEstado());
+        assertEquals("0 / 5", fila.getIntegridadEnemiga());
     }
 
     @Test

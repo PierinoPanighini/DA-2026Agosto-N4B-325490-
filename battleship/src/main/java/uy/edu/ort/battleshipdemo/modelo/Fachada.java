@@ -49,6 +49,10 @@ public class Fachada extends Observable {
         return sistemaBatallas.contarBatallasPerdidas();
     }
 
+    public int contarBatallasTerminadas() {
+        return sistemaBatallas.contarBatallasTerminadas();
+    }
+
     public double calcularExitoCampania() {
         return sistemaBatallas.calcularExitoCampania();
     }
@@ -78,13 +82,8 @@ public class Fachada extends Observable {
     }
 
     //CU03
-    public Batalla disparar(
-        int idBatalla,
-        int fila,
-        int columna,
-        int numeroRondaEsperado) throws BatallaNavalException {
-
-        return sistemaBatallas.disparar(idBatalla, fila, columna, numeroRondaEsperado);
+    public Batalla disparar(int idBatalla, int fila, int columna) throws BatallaNavalException {
+        return sistemaBatallas.disparar(idBatalla, fila, columna);
     }
 
 }

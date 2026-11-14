@@ -1,5 +1,7 @@
 package uy.edu.ort.battleshipdemo.modelo;
 
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+
 public class EstadoTerminada extends EstadoBatalla {
 
     public EstadoTerminada (Batalla b){

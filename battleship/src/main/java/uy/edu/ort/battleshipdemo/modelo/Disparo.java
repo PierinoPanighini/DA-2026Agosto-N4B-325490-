@@ -6,6 +6,13 @@ package uy.edu.ort.battleshipdemo.modelo;
  */
 public class Disparo {
 
+    public enum ResultadoDisparo {
+        AGUA,
+        IMPACTO,
+        HUNDIDO
+    }
+
+
     // Celda a la que se disparó.
     private Cuadrante cuadrante;
 

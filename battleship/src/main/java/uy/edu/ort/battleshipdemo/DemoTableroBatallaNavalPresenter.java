@@ -2,8 +2,8 @@ package uy.edu.ort.battleshipdemo;
 
 import uy.edu.ort.battleshipdemo.presentador.Command;
 import uy.edu.ort.battleshipdemo.presentador.Commands;
-import uy.edu.ort.battleshipdemo.presentador.InicializarDto;
-import uy.edu.ort.battleshipdemo.presentador.ValorDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.InicializarDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.ValorDto;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;

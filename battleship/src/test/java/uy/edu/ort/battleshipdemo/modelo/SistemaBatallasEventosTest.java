@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import uy.edu.ort.battleshipdemo.observador.Observador;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 
 class SistemaBatallasEventosTest {
     private SistemaBatallas cargar() throws BatallaNavalException {
@@ -25,7 +26,7 @@ class SistemaBatallasEventosTest {
                 }
             }
         }
-        throw new IllegalStateException("Debe haber agua en el escenario de prueba.");
+        throw new BatallaNavalException("Debe haber agua en el escenario de prueba.");
     }
 
     @Test
@@ -44,7 +45,7 @@ class SistemaBatallasEventosTest {
             assertEquals(1, eventos.size());
             assertTrue(sistema.listarBatallas().contains(batalla));
             assertThrows(BatallaNavalException.class, () -> sistema.iniciarCombate(batalla.getId()));
-            assertThrows(BatallaNavalException.class, () -> sistema.disparar(batalla.getId(), 1, 1, 1));
+            assertThrows(BatallaNavalException.class, () -> sistema.disparar(batalla.getId(), 1, 1));
             assertEquals(1, eventos.size());
 
             batalla.colocarBarco(batalla.getFlotaJugador().getBarcos().get(0),
@@ -56,15 +57,15 @@ class SistemaBatallasEventosTest {
             assertEquals(2, eventos.size());
 
             Cuadrante agua = aguaLibre(batalla.getOceanoMaquina());
-            sistema.disparar(batalla.getId(), agua.getFila(), agua.getColumna(), 1);
+            sistema.disparar(batalla.getId(), agua.getFila(), agua.getColumna());
             assertEquals(3, eventos.size());
             assertEquals(1, batalla.getRondas().size());
             assertThrows(BatallaNavalException.class,
-                    () -> sistema.disparar(batalla.getId(), agua.getFila(), agua.getColumna(), 2));
+                    () -> sistema.disparar(batalla.getId(), agua.getFila(), agua.getColumna()));
             assertEquals(3, eventos.size());
 
-            Cuadrante barco = batalla.getFlotaMaquina().getBarcos().get(0).getCuadrantes().get(0);
-            sistema.disparar(batalla.getId(), barco.getFila(), barco.getColumna(), 2);
+            Cuadrante barco = batalla.getFlotaMaquina().getBarcos().get(0).getProa();
+            sistema.disparar(batalla.getId(), barco.getFila(), barco.getColumna());
             assertEquals(4, eventos.size());
             assertTrue(batalla.fueGanada());
             assertEquals(2, sistema.contarBatallasGanadas());
@@ -89,7 +90,7 @@ class SistemaBatallasEventosTest {
                     batalla.getOceanoJugador().getCuadrante(0, 0), Orientacion.HORIZONTAL);
             sistema.iniciarCombate(batalla.getId());
             Cuadrante agua = aguaLibre(batalla.getOceanoMaquina());
-            sistema.disparar(batalla.getId(), agua.getFila(), agua.getColumna(), 1);
+            sistema.disparar(batalla.getId(), agua.getFila(), agua.getColumna());
             assertTrue(batalla.fuePerdida());
             assertEquals(2, sistema.contarBatallasPerdidas());
             assertEquals(3, porcentajesAlAvisar.size());

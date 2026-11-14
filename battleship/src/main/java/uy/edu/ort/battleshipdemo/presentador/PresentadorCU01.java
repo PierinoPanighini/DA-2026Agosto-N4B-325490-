@@ -1,5 +1,8 @@
 package uy.edu.ort.battleshipdemo.presentador;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.annotation.PreDestroy;
 
 import org.springframework.http.MediaType;
@@ -16,6 +19,8 @@ import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
 import uy.edu.ort.battleshipdemo.observador.Observable;
 import uy.edu.ort.battleshipdemo.observador.Observador;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.SalaDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.BatallaDto;
 
 @RestController
 @SessionScope
@@ -52,11 +57,32 @@ public class PresentadorCU01 implements Observador {
         }
     }
 
+    // Consulta la fachada, prepara los datos de presentacion y envia el DTO de la sala.
     @PostMapping("/inicializar")
     public Commands inicializar() {
         fachada.agregarObservador(this);
         observando = true;
-        return Commands.create(sala());
+        int ganadas = fachada.contarBatallasGanadas();
+        int perdidas = fachada.contarBatallasPerdidas();
+        int terminadas = fachada.contarBatallasTerminadas();
+        double porcentajeExito = fachada.calcularExitoCampania();
+        List<Batalla> batallas = fachada.listarBatallas();
+
+        String exito = Math.round(porcentajeExito) + "%";
+        String detalleExito = "(" + ganadas + " de " + terminadas + " batallas)";
+        List<BatallaDto> datosBatallas = new ArrayList<>();
+        for (Batalla batalla : batallas) {
+            String dimensiones = batalla.getOceanoJugador().getColumnas() + " x "
+                    + batalla.getOceanoJugador().getFilas();
+            String estado = FormatoBatalla.textoEstado(batalla);
+            String integridadPropia = FormatoBatalla.integridad(batalla.getFlotaJugador());
+            String integridadEnemiga = FormatoBatalla.integridad(batalla.getFlotaMaquina());
+            datosBatallas.add(new BatallaDto(batalla.getId(), batalla.getLugar(), dimensiones,
+                    estado, integridadPropia, integridadEnemiga));
+        }
+
+        SalaDto sala = new SalaDto(ganadas, perdidas, exito, detalleExito, datosBatallas);
+        return Commands.create(new Command("sala", sala));
     }
 
     @PostMapping("/finCasoUso")
@@ -95,11 +121,8 @@ public class PresentadorCU01 implements Observador {
     @Override
     public void actualizar(Object evento, Observable origen) {
         if (observando && origen == fachada && evento == Fachada.Eventos.BATALLAS_ACTUALIZADAS) {
-            conexion.enviarJSON(Commands.create(sala()));
+            conexion.enviarJSON(inicializar());
         }
     }
 
-    private Command sala() {
-        return new Command("sala", new SalaDto(fachada));
-    }
 }

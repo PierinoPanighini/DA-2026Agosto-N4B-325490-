@@ -18,6 +18,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import uy.edu.ort.battleshipdemo.config.ManejadorGlobalExcepciones;
 import uy.edu.ort.battleshipdemo.modelo.*;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.BarcoDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TacticaDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TipoBarcoDto;
 
 class PresentadorCU02Test {
     private MockMvc mvc;
@@ -71,6 +75,35 @@ class PresentadorCU02Test {
     private void observar() throws Exception {
         presentador.registrarSSE(batalla.getId());
         clearInvocations(conexion);
+    }
+
+    @Test
+    void configuracionEnviaCatalogosComoDtos() throws Exception {
+        List<Tactica> tacticas = List.of(new TacticaSecuencial(), new TacticaEspiral(), new TacticaCazaAtaque());
+        List<TipoBarco> tipos = List.of(new TipoBarco("Portaaviones", 5), new TipoBarco("Destructor", 1));
+        when(fachada.listarTacticas()).thenReturn(tacticas);
+        when(fachada.listarTiposBarco()).thenReturn(tipos);
+
+        Commands comandos = presentador.panelCU2(null);
+        List<?> tacticasEnviadas = (List<?>) parametro(comandos, "listaTacticas");
+        assertEquals(tacticas.size(), tacticasEnviadas.size());
+        for (int i = 0; i < tacticas.size(); i++) {
+            TacticaDto dto = assertInstanceOf(TacticaDto.class, tacticasEnviadas.get(i));
+            assertEquals(tacticas.get(i).getNombre(), dto.getNombre());
+        }
+        List<?> tiposEnviados = (List<?>) parametro(comandos, "listaTiposBarco");
+        assertEquals(tipos.size(), tiposEnviados.size());
+        for (int i = 0; i < tipos.size(); i++) {
+            TipoBarcoDto dto = assertInstanceOf(TipoBarcoDto.class, tiposEnviados.get(i));
+            assertEquals(tipos.get(i).getNombre(), dto.getNombre());
+            assertEquals(tipos.get(i).getTamanio(), dto.getTamanio());
+        }
+
+        mvc.perform(post("/cu02/configurarBatalla"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.commands[0].parametro[0].nombre").value("Secuencial"))
+                .andExpect(jsonPath("$.commands[1].parametro[0].nombre").value("Portaaviones"))
+                .andExpect(jsonPath("$.commands[1].parametro[0].tamanio").value(5));
     }
 
     @Test

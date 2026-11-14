@@ -9,8 +9,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Disparo.ResultadoDisparo;
 
 class BatallaEstadosTest {
+
+    @Test
+    void constructorRechazaParticipantesInvalidosConExcepcionDelModelo() throws BatallaNavalException {
+        Batalla valida = crearBatalla();
+        Jugador jugador = valida.getJugador();
+        Maquina maquina = valida.getMaquina();
+        assertThrows(BatallaNavalException.class, () -> new Batalla("Prueba", null, maquina));
+        assertThrows(BatallaNavalException.class, () -> new Batalla("Prueba", jugador, null));
+        Maquina flotaCompartida = new Maquina(jugador.getFlota(), new Oceano(6, 6), new TacticaSecuencial());
+        assertThrows(BatallaNavalException.class, () -> new Batalla("Prueba", jugador, flotaCompartida));
+        Maquina oceanoCompartido = new Maquina(jugador.getFlota().crearFlotaEquivalente(),
+                jugador.getOceano(), new TacticaSecuencial());
+        assertThrows(BatallaNavalException.class, () -> new Batalla("Prueba", jugador, oceanoCompartido));
+    }
 
     @Test
     void preparacionRechazaDisparosSinAlterarElTableroNiElHistorial() throws BatallaNavalException {
@@ -18,7 +34,7 @@ class BatallaEstadosTest {
         assertEquals(Batalla.Estados.EN_PREPARACION, batalla.getEstado());
         assertFalse(batalla.fueGanada());
         assertFalse(batalla.fuePerdida());
-        assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(1, 1, 1));
+        assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(1, 1));
         assertTrue(batalla.getRondas().isEmpty());
         assertEquals(0, contarDisparados(batalla.getOceanoMaquina()));
         assertEquals(0, contarDisparados(batalla.getOceanoJugador()));
@@ -28,7 +44,7 @@ class BatallaEstadosTest {
     @Test
     void unaRondaRegistraAmbosDisparosYAvanzaElNumero() throws Exception {
         Batalla batalla = crearBatallaEnCombate(5);
-        batalla.generarDisparo(1, 1, 1);
+        batalla.generarDisparo(1, 1);
         assertEquals(Batalla.Estados.EN_COMBATE, batalla.getEstado());
         assertEquals(1, batalla.getRondas().size());
         Ronda ronda = batalla.getRondas().get(0);
@@ -43,12 +59,12 @@ class BatallaEstadosTest {
     @Test
     void victoriaFinalizaSinRespuestaYRechazaMasDisparos() throws Exception {
         Batalla batalla = crearBatallaEnCombate(5);
-        batalla.generarDisparo(2, 0, 1);
+        batalla.generarDisparo(2, 0);
         assertEquals(1, batalla.getBajasEnemigas().size());
         assertFalse(batalla.fueGanada());
         assertFalse(batalla.fuePerdida());
 
-        batalla.generarDisparo(2, 2, 2);
+        batalla.generarDisparo(2, 2);
         assertEquals(Batalla.Estados.TERMINADA, batalla.getEstado());
         assertTrue(batalla.fueGanada());
         assertFalse(batalla.fuePerdida());
@@ -58,25 +74,25 @@ class BatallaEstadosTest {
         assertTrue(batalla.getBajasAmigas().isEmpty());
         assertNull(batalla.getRondas().get(1).getDisparoMaquina());
         assertEquals(1, contarDisparados(batalla.getOceanoJugador()));
-        assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(4, 4, 3));
+        assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(4, 4));
         assertFalse(batalla.getOceanoMaquina().getCuadrante(4, 4).isDisparado());
         assertEquals(2, batalla.getRondas().size());
     }
 
     @Test
-    void derrotaRegistraLasBajasAmigasEnOrdenSinDuplicarlas() throws Exception {
+    void derrotaObtieneLasBajasAmigasSinDuplicarlas() throws Exception {
         Batalla batalla = crearBatallaEnCombate(0);
-        batalla.generarDisparo(5, 5, 1);
+        batalla.generarDisparo(5, 5);
         assertEquals(List.of(batalla.getFlotaJugador().getBarcos().get(0)), batalla.getBajasAmigas());
         assertFalse(batalla.fuePerdida());
         assertFalse(batalla.fueGanada());
 
-        batalla.generarDisparo(2, 0, 2);
+        batalla.generarDisparo(2, 0);
         assertEquals(1, batalla.getBajasAmigas().size());
         assertFalse(batalla.fuePerdida());
         assertFalse(batalla.fueGanada());
 
-        batalla.generarDisparo(5, 4, 3);
+        batalla.generarDisparo(5, 4);
         assertEquals(Batalla.Estados.TERMINADA, batalla.getEstado());
         assertTrue(batalla.fuePerdida());
         assertFalse(batalla.fueGanada());
@@ -86,76 +102,42 @@ class BatallaEstadosTest {
     }
 
     @Test
+    void bajasSeCalculanDesdeLosBarcosYLaListaDevueltaNoAlteraLaFlota() throws Exception {
+        Batalla batalla = crearBatallaEnCombate(5);
+        Barco primero = batalla.getFlotaMaquina().getBarcos().get(0);
+        Barco segundo = batalla.getFlotaMaquina().getBarcos().get(1);
+        assertTrue(batalla.getFlotaMaquina().listarBajas().isEmpty());
+        assertEquals(0, batalla.getMaquina().contarBajas());
+        assertEquals(0, batalla.getJugador().contarBajas());
+
+        batalla.getOceanoMaquina().getCuadrante(2, 2).recibirDisparo();
+        assertEquals(List.of(segundo), batalla.getFlotaMaquina().listarBajas());
+        assertEquals(List.of(segundo), batalla.getBajasEnemigas());
+        assertEquals(1, batalla.getMaquina().contarBajas());
+        assertEquals(1, batalla.getFlotaMaquina().contarBajas());
+        batalla.getBajasEnemigas().clear();
+        assertEquals(List.of(segundo), batalla.getBajasEnemigas());
+
+        batalla.getOceanoMaquina().getCuadrante(2, 0).recibirDisparo();
+        assertEquals(List.of(primero, segundo), batalla.getBajasEnemigas());
+        assertEquals(2, batalla.getMaquina().contarBajas());
+        batalla.getOceanoJugador().getCuadrante(5, 0).recibirDisparo();
+        assertEquals(List.of(batalla.getFlotaJugador().getBarcos().get(0)), batalla.getBajasAmigas());
+        assertEquals(1, batalla.getJugador().contarBajas());
+        assertEquals(1, batalla.getFlotaJugador().contarBajas());
+    }
+
+    @Test
     void disparoRepetidoNoConsumeLaRondaNiGeneraRespuestaDeLaMaquina() throws Exception {
         Batalla batalla = crearBatallaEnCombate(5);
-        batalla.generarDisparo(1, 1, 1);
-        assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(1, 1, 2));
+        batalla.generarDisparo(1, 1);
+        assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(1, 1));
         assertEquals(1, batalla.getRondas().size());
         assertEquals(2, batalla.getNumeroProximaRonda());
         assertEquals(1, contarDisparados(batalla.getOceanoJugador()));
         assertEquals(1, contarDisparados(batalla.getOceanoMaquina()));
-        batalla.generarDisparo(1, 2, 2);
+        batalla.generarDisparo(1, 2);
         assertEquals(2, batalla.getRondas().size());
-    }
-
-    @Test
-    void solicitudDeUnaRondaAnteriorNoSeConvierteEnElDisparoSiguiente() throws Exception {
-        Batalla batalla = crearBatallaEnCombate(5);
-        batalla.generarDisparo(1, 1, 1);
-        BatallaNavalException error = assertThrows(BatallaNavalException.class,
-                () -> batalla.generarDisparo(1, 2, 1));
-        assertTrue(error.getMessage().contains("ronda"));
-        assertFalse(batalla.getOceanoMaquina().getCuadrante(1, 2).isDisparado());
-        assertEquals(1, batalla.getRondas().size());
-        assertEquals(1, contarDisparados(batalla.getOceanoJugador()));
-        batalla.generarDisparo(1, 2, 2);
-        assertEquals(2, batalla.getRondas().size());
-    }
-
-    @Test
-    void rondaInvalidaOAdelantadaSeRechazaSinCambios() throws Exception {
-        Batalla batalla = crearBatallaEnCombate(5);
-        for (int numero : new int[] {-1, 0, 2}) {
-            assertThrows(BatallaNavalException.class, () -> batalla.generarDisparo(1, 1, numero));
-        }
-        assertTrue(batalla.getRondas().isEmpty());
-        assertEquals(0, contarDisparados(batalla.getOceanoMaquina()));
-        assertEquals(0, contarDisparados(batalla.getOceanoJugador()));
-        batalla.generarDisparo(1, 1, 1);
-        assertEquals(1, batalla.getRondas().size());
-    }
-
-    @Test
-    void dosSolicitudesSimultaneasParaLaMismaRondaSoloRegistranUna() throws Exception {
-        Batalla batalla = crearBatallaEnCombate(5);
-        int numeroEsperado = batalla.getNumeroProximaRonda();
-        CountDownLatch preparados = new CountDownLatch(2);
-        CountDownLatch inicio = new CountDownLatch(1);
-        var ejecutor = Executors.newFixedThreadPool(2);
-        try {
-            var primero = ejecutor.submit(() -> dispararAlMismoTiempo(batalla, 1, 1,
-                    numeroEsperado, preparados, inicio));
-            var segundo = ejecutor.submit(() -> dispararAlMismoTiempo(batalla, 1, 2,
-                    numeroEsperado, preparados, inicio));
-            assertTrue(preparados.await(5, TimeUnit.SECONDS));
-            inicio.countDown();
-            int exitos = 0;
-            for (String error : new String[] {primero.get(5, TimeUnit.SECONDS), segundo.get(5, TimeUnit.SECONDS)}) {
-                if (error == null) {
-                    exitos++;
-                } else {
-                    assertTrue(error.contains("ronda"));
-                }
-            }
-            assertEquals(1, exitos);
-            assertEquals(1, batalla.getRondas().size());
-            assertEquals(1, contarDisparados(batalla.getOceanoMaquina()));
-            assertEquals(1, contarDisparados(batalla.getOceanoJugador()));
-            assertEquals(2, batalla.getNumeroProximaRonda());
-        } finally {
-            inicio.countDown();
-            ejecutor.shutdownNow();
-        }
     }
 
     @Test
@@ -197,7 +179,8 @@ class BatallaEstadosTest {
         List<Cuadrante> propios = batalla.getOceanoJugador().listarCuadrantesOcupados();
         batalla.iniciarCombate();
         assertEquals(Batalla.Estados.EN_COMBATE, batalla.getEstado());
-        assertDoesNotThrow(batalla::validarFlotasColocadas);
+        assertTrue(batalla.getFlotaJugador().estaCompletamenteUbicada());
+        assertTrue(batalla.getFlotaMaquina().estaCompletamenteUbicada());
         assertEquals(propios, batalla.getOceanoJugador().listarCuadrantesOcupados());
         assertTrue(batalla.getRondas().isEmpty());
         assertEquals(1, batalla.getNumeroProximaRonda());
@@ -205,7 +188,7 @@ class BatallaEstadosTest {
         assertEquals(0, contarDisparados(batalla.getOceanoJugador()));
 
         Cuadrante agua = buscarAgua(batalla.getOceanoMaquina());
-        batalla.generarDisparo(agua.getFila(), agua.getColumna(), 1);
+        batalla.generarDisparo(agua.getFila(), agua.getColumna());
         assertEquals(1, batalla.getRondas().size());
         assertEquals(ResultadoDisparo.AGUA, batalla.getRondas().get(0).getDisparoJugador().getResultado());
         assertNotNull(batalla.getRondas().get(0).getDisparoMaquina());
@@ -260,7 +243,8 @@ class BatallaEstadosTest {
             inicio.countDown();
             assertNotEquals(primero.get(5, TimeUnit.SECONDS), segundo.get(5, TimeUnit.SECONDS));
             assertEquals(Batalla.Estados.EN_COMBATE, batalla.getEstado());
-            assertDoesNotThrow(batalla::validarFlotasColocadas);
+            assertTrue(batalla.getFlotaJugador().estaCompletamenteUbicada());
+            assertTrue(batalla.getFlotaMaquina().estaCompletamenteUbicada());
             assertEquals(2, batalla.getOceanoMaquina().listarCuadrantesOcupados().size());
             assertTrue(batalla.getRondas().isEmpty());
         } finally {
@@ -302,8 +286,8 @@ class BatallaEstadosTest {
                 rondasAlTerminar.add(batalla.getRondas().size());
             }
         });
-        batalla.generarDisparo(2, 0, 1);
-        batalla.generarDisparo(2, 2, 2);
+        batalla.generarDisparo(2, 0);
+        batalla.generarDisparo(2, 2);
         assertEquals(List.of(Batalla.Eventos.RONDA_COMPLETADA, Batalla.Eventos.RONDA_COMPLETADA,
                 Batalla.Eventos.BATALLA_TERMINADA), eventos);
         assertEquals(List.of(2), rondasAlTerminar);
@@ -337,19 +321,7 @@ class BatallaEstadosTest {
                 }
             }
         }
-        throw new IllegalStateException("El escenario de prueba debe tener agua.");
-    }
-
-    private String dispararAlMismoTiempo(Batalla batalla, int fila, int columna, int numero,
-            CountDownLatch preparados, CountDownLatch inicio) throws InterruptedException {
-        preparados.countDown();
-        inicio.await();
-        try {
-            batalla.generarDisparo(fila, columna, numero);
-            return null;
-        } catch (BatallaNavalException error) {
-            return error.getMessage();
-        }
+        throw new BatallaNavalException("El escenario de prueba debe tener agua.");
     }
 
     private Batalla crearBatalla() throws BatallaNavalException {

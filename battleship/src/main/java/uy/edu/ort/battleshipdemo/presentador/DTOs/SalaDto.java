@@ -1,10 +1,7 @@
-package uy.edu.ort.battleshipdemo.presentador;
+package uy.edu.ort.battleshipdemo.presentador.DTOs;
 
 import java.util.List;
 
-import uy.edu.ort.battleshipdemo.modelo.Fachada;
-
-// Todo lo que muestra la sala de operaciones (como AgendaDto en la agenda).
 public class SalaDto {
 
     private int ganadas;
@@ -13,12 +10,13 @@ public class SalaDto {
     private String detalleExito;
     private List<BatallaDto> batallas;
 
-    public SalaDto(Fachada fachada) {
-        ganadas = fachada.contarBatallasGanadas();
-        perdidas = fachada.contarBatallasPerdidas();
-        exito = Math.round(fachada.calcularExitoCampania()) + "%";
-        detalleExito = "(" + ganadas + " de " + (ganadas + perdidas) + " batallas)";
-        batallas = BatallaDto.listaDtos(fachada.listarBatallas());
+    // Guarda los datos de la sala que el presentador ya preparo para la vista.
+    public SalaDto(int ganadas, int perdidas, String exito, String detalleExito, List<BatallaDto> batallas) {
+        this.ganadas = ganadas;
+        this.perdidas = perdidas;
+        this.exito = exito;
+        this.detalleExito = detalleExito;
+        this.batallas = batallas;
     }
 
     public int getGanadas() {

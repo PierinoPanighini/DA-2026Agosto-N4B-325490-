@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Disparo.ResultadoDisparo;
 
 class TacticasObjetivoTest {
 
@@ -121,8 +123,8 @@ class TacticasObjetivoTest {
             Cuadrante primero = tactica.elegirCuadrante();
             primero.recibirDisparo();
             tactica.configurarObjetivo(oceano);
-            assertThrows(IllegalStateException.class, () -> tactica.configurarObjetivo(new Oceano(8, 6)));
-            assertThrows(IllegalArgumentException.class, () -> tactica.configurarObjetivo(null));
+            assertThrows(BatallaNavalException.class, () -> tactica.configurarObjetivo(new Oceano(8, 6)));
+            assertThrows(BatallaNavalException.class, () -> tactica.configurarObjetivo(null));
             Cuadrante siguiente = tactica.elegirCuadrante();
             assertSame(oceano.getCuadrante(siguiente.getFila(), siguiente.getColumna()), siguiente);
             assertNotSame(primero, siguiente);

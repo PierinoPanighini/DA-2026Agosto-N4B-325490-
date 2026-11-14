@@ -2,6 +2,7 @@ package uy.edu.ort.battleshipdemo.modelo;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -90,6 +91,42 @@ class PrepararBatallaTest {
         Batalla valida = sistema.prepararBatalla("Valida", "Secuencial", 6, 6, 0, 0, 2, 1, 0);
         assertEquals(8, valida.getFlotaJugador().tamanioTotal());
         assertEquals(5, sistema.listarBatallas().size());
+    }
+
+    @Test
+    void cadaParticipanteValidaLaDensidadConLasDimensionesDeSuOceano() throws Exception {
+        Flota flota = new Flota(List.of(new Barco(new TipoBarco("Crucero", 3)),
+                new Barco(new TipoBarco("Crucero", 3)), new Barco(new TipoBarco("Crucero", 3))));
+        Oceano chico = new Oceano(6, 6);
+        Oceano grande = new Oceano(6, 8);
+        assertThrows(BatallaNavalException.class, () -> chico.validarDensidad(flota));
+        assertThrows(BatallaNavalException.class, () -> new Jugador(flota, chico));
+        assertThrows(BatallaNavalException.class,
+                () -> new Maquina(flota.crearFlotaEquivalente(), chico, new TacticaSecuencial()));
+        assertDoesNotThrow(() -> grande.validarDensidad(flota));
+        assertDoesNotThrow(() -> new Jugador(flota, grande));
+        assertDoesNotThrow(() -> new Maquina(flota.crearFlotaEquivalente(), grande, new TacticaSecuencial()));
+    }
+
+    @Test
+    void constructoresRechazanDatosInvalidosConExcepcionesDelDominio() throws Exception {
+        assertThrows(BatallaNavalException.class, () -> new TipoBarco("Invalido", 0));
+        assertThrows(BatallaNavalException.class, () -> new TipoBarco("Invalido", -1));
+        assertThrows(BatallaNavalException.class, () -> new Barco(null));
+        assertThrows(BatallaNavalException.class, () -> new Flota(null));
+        assertThrows(BatallaNavalException.class, () -> new Flota(List.of()));
+        List<Barco> barcos = new ArrayList<>();
+        barcos.add(null);
+        assertThrows(BatallaNavalException.class, () -> new Flota(barcos));
+        Flota flota = new Flota(List.of(new Barco(new TipoBarco("Destructor", 1))));
+        Oceano oceano = new Oceano(6, 6);
+        assertThrows(BatallaNavalException.class, () -> new Jugador(null, oceano));
+        assertThrows(BatallaNavalException.class, () -> new Jugador(flota, null));
+        assertThrows(BatallaNavalException.class, () -> new Maquina(null, oceano, new TacticaSecuencial()));
+        assertThrows(BatallaNavalException.class, () -> new Maquina(flota, null, new TacticaSecuencial()));
+        assertThrows(BatallaNavalException.class, () -> new Maquina(flota, oceano, null));
+        assertThrows(BatallaNavalException.class, () -> new Oceano(-1, 6));
+        assertThrows(BatallaNavalException.class, () -> new Oceano(6, -1));
     }
 
     @Test

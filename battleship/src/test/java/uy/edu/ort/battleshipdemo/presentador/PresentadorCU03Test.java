@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import uy.edu.ort.battleshipdemo.config.ManejadorGlobalExcepciones;
 import uy.edu.ort.battleshipdemo.modelo.*;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 
 class PresentadorCU03Test {
     private Batalla batalla;
@@ -43,9 +44,8 @@ class PresentadorCU03Test {
         batalla = crearCombate(tamanio, filaHumano);
         fachada = mock(Fachada.class);
         when(fachada.buscarBatalla(batalla.getId())).thenReturn(batalla);
-        when(fachada.disparar(anyInt(), anyInt(), anyInt(), anyInt())).thenAnswer(invocacion -> {
-            batalla.generarDisparo(invocacion.getArgument(1), invocacion.getArgument(2),
-                    invocacion.getArgument(3));
+        when(fachada.disparar(anyInt(), anyInt(), anyInt())).thenAnswer(invocacion -> {
+            batalla.generarDisparo(invocacion.getArgument(1), invocacion.getArgument(2));
             return batalla;
         });
         conexion = mock(ConexionNavegador.class);
@@ -55,13 +55,11 @@ class PresentadorCU03Test {
                 .setControllerAdvice(new ManejadorGlobalExcepciones()).build();
     }
 
-    private org.springframework.test.web.servlet.ResultActions disparar(int fila, int columna, int ronda)
-            throws Exception {
+    private org.springframework.test.web.servlet.ResultActions disparar(int fila, int columna) throws Exception {
         return mvc.perform(post("/cu03/disparar")
                 .param("idBatalla", String.valueOf(batalla.getId()))
                 .param("coordenadaVertical", String.valueOf(fila))
-                .param("coordenadaHorizontal", String.valueOf(columna))
-                .param("numeroRonda", String.valueOf(ronda)));
+                .param("coordenadaHorizontal", String.valueOf(columna)));
     }
 
     private Commands ultimoEnvio(ConexionNavegador destinatario, int cantidad) {
@@ -78,7 +76,7 @@ class PresentadorCU03Test {
     @Test
     void rondaEnviaImpactoYAguaPorSseSinDuplicarlosEnLaRespuestaHttp() throws Exception {
         prepararCombate(2, 5);
-        disparar(1, 1, 1).andExpect(status().isOk())
+        disparar(1, 1).andExpect(status().isOk())
                 .andExpect(jsonPath("$.commands").isEmpty());
         Commands envio = ultimoEnvio(conexion, 1);
         assertEquals(List.of("impacto", "agua"), parametro(envio, "reproducirSonidos"));
@@ -88,8 +86,8 @@ class PresentadorCU03Test {
     @Test
     void victoriaEnviaHundimientoMelodiaEstadoYBajasSinDisparoDeMaquina() throws Exception {
         prepararCombate(2, 5);
-        disparar(1, 1, 1);
-        disparar(1, 2, 2).andExpect(status().isOk());
+        disparar(1, 1);
+        disparar(1, 2).andExpect(status().isOk());
         Commands envio = ultimoEnvio(conexion, 2);
         assertEquals(List.of("hundido", "victoria"), parametro(envio, "reproducirSonidos"));
         assertEquals("Ganada", parametro(envio, "cargarEstado"));
@@ -100,7 +98,7 @@ class PresentadorCU03Test {
     @Test
     void derrotaEnviaAmbosDisparosYElEstadoFinal() throws Exception {
         prepararCombate(1, 0);
-        disparar(5, 5, 1).andExpect(status().isOk());
+        disparar(5, 5).andExpect(status().isOk());
         Commands envio = ultimoEnvio(conexion, 1);
         assertEquals(List.of("agua", "hundido", "derrota"), parametro(envio, "reproducirSonidos"));
         assertEquals("Perdida", parametro(envio, "cargarEstado"));
@@ -109,7 +107,7 @@ class PresentadorCU03Test {
     @Test
     void abrirUnaBatallaTerminadaNoReproduceElHistorialNiLaVictoria() throws Exception {
         prepararCombate(1, 5);
-        disparar(1, 1, 1);
+        disparar(1, 1);
         assertTrue(batalla.fueGanada());
         clearInvocations(conexion);
         mvc.perform(post("/cu03/iniciarBatalla").param("idBatalla", String.valueOf(batalla.getId())))
@@ -121,9 +119,9 @@ class PresentadorCU03Test {
     @Test
     void disparoRepetidoNoNotificaNiAgregaOtraRonda() throws Exception {
         prepararCombate(2, 5);
-        disparar(1, 1, 1);
+        disparar(1, 1);
         clearInvocations(conexion);
-        disparar(1, 1, 2).andExpect(status().is(299));
+        disparar(1, 1).andExpect(status().is(299));
         assertEquals(1, batalla.getRondas().size());
         verifyNoInteractions(conexion);
     }
@@ -136,7 +134,7 @@ class PresentadorCU03Test {
         otro.inicializar(batalla.getId());
         // Volver a abrir la misma batalla no debe duplicar la suscripcion.
         otro.inicializar(batalla.getId());
-        disparar(1, 1, 1).andExpect(status().isOk());
+        disparar(1, 1).andExpect(status().isOk());
         Commands primero = ultimoEnvio(conexion, 1);
         Commands segundo = ultimoEnvio(otraConexion, 1);
         assertEquals(parametro(primero, "cargarNumeroRonda"), parametro(segundo, "cargarNumeroRonda"));
@@ -153,7 +151,7 @@ class PresentadorCU03Test {
         otro.finCasoUso(batalla.getId());
         verify(otraConexion).cerrarConexion();
         clearInvocations(otraConexion);
-        disparar(1, 1, 1).andExpect(status().isOk());
+        disparar(1, 1).andExpect(status().isOk());
         ultimoEnvio(conexion, 1);
         verifyNoInteractions(otraConexion);
     }
@@ -164,9 +162,9 @@ class PresentadorCU03Test {
         Batalla otraBatalla = crearCombate(2, 5);
         when(fachada.buscarBatalla(otraBatalla.getId())).thenReturn(otraBatalla);
         presentador.inicializar(otraBatalla.getId());
-        batalla.generarDisparo(1, 1, 1);
+        batalla.generarDisparo(1, 1);
         verifyNoInteractions(conexion);
-        otraBatalla.generarDisparo(1, 1, 1);
+        otraBatalla.generarDisparo(1, 1);
         ultimoEnvio(conexion, 1);
     }
 
@@ -175,7 +173,7 @@ class PresentadorCU03Test {
         prepararCombate(2, 5);
         presentador.finCasoUso(batalla.getId() + 1);
         verifyNoInteractions(conexion);
-        disparar(1, 1, 1).andExpect(status().isOk());
+        disparar(1, 1).andExpect(status().isOk());
         ultimoEnvio(conexion, 1);
     }
 
@@ -184,7 +182,7 @@ class PresentadorCU03Test {
         prepararCombate(2, 5);
         presentador.salir();
         clearInvocations(conexion);
-        disparar(1, 1, 1).andExpect(status().is(299));
+        disparar(1, 1).andExpect(status().is(299));
         assertTrue(batalla.getRondas().isEmpty());
         verifyNoInteractions(conexion);
     }
@@ -199,7 +197,7 @@ class PresentadorCU03Test {
         presentador.finCasoUso(batalla.getId());
         verify(conexion, never()).cerrarConexion();
         clearInvocations(conexion);
-        batalla.generarDisparo(1, 1, 1);
+        batalla.generarDisparo(1, 1);
         verifyNoInteractions(conexion);
     }
 }

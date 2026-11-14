@@ -20,10 +20,9 @@ public class SistemaBatallas {
 
      // ---------------------------METODOS CU03--------------------------------------------//
 
-    public Batalla disparar(int idBatalla, int fila, int columna, int numeroRondaEsperado)
-            throws BatallaNavalException {
+    public Batalla disparar(int idBatalla, int fila, int columna) throws BatallaNavalException {
         Batalla batalla = buscarBatalla(idBatalla);
-        batalla.generarDisparo(fila, columna, numeroRondaEsperado);
+        batalla.generarDisparo(fila, columna);
         // La ronda completa ya contiene la integridad y el resultado final actualizados.
         Fachada.getInstancia().notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
         return batalla;
@@ -31,63 +30,36 @@ public class SistemaBatallas {
 
     // ---------------------------METODOS CU02--------------------------------------------//
     // hacer batalla para preparacion
+    // Construye los participantes y registra la batalla cuando sus objetos se validaron.
     public Batalla prepararBatalla(String nombre, String tactica, int filas, int columnas, int portaaviones,
             int acorazados, int cruceros, int submarinos, int destructores) throws BatallaNavalException {
+        String nombreProvisto = nombre;
+        if (nombreProvisto == null || nombreProvisto.isBlank()) {
+            nombreProvisto = generarNombreAleatorio();
+        } else {
+            nombreProvisto = nombreProvisto.trim();
+        }
+        if (nombreYaUsado(nombreProvisto)) {
+            throw new BatallaNavalException("No se puede librar más de una batalla en el mismo lugar, cambie de nombre");
+        }
 
-            String nombreProvisto = nombre;
-            if (nombreProvisto == null || nombreProvisto.isBlank()) {
-                nombreProvisto = generarNombreAleatorio();
-            } else {
-                nombreProvisto = nombreProvisto.trim();
-            }
-
-            if(nombreYaUsado(nombreProvisto)){
-                throw new BatallaNavalException("No se puede librar más de una batalla en el mismo lugar, cambie de nombre"
-);
-            }
-
-            if (portaaviones > 6 || acorazados > 6 || cruceros > 6 || submarinos > 6 || destructores > 6 ){
-                throw new BatallaNavalException("No se puede utilizar mas de 6 barcos de cada tipo");
-            }
-
-            if(portaaviones == 0 && acorazados == 0 && cruceros == 0 && submarinos == 0 && destructores == 0 ){
-                throw new BatallaNavalException("La flota no puede estar vacía");
-            }
-
-
-
-            Oceano oceanoHumano = new Oceano(filas, columnas);
-            Oceano oceanoMaquina = new Oceano(filas, columnas);
-
-            List<Barco> barcosFlota = generarBarcos(portaaviones, acorazados, cruceros, submarinos, destructores);
-
-
-            Flota flotaHumano = new Flota(barcosFlota);
-            Flota flotaMaquina = flotaHumano.crearFlotaEquivalente();
-
-            if (flotaHumano.tamanioTotal() * 4 >= filas * columnas) {
-                    throw new BatallaNavalException( "La flota debe ocupar menos del 25% del oceano.");
-            }
-
-            Tactica tacticaSeleccionada = buscarTactica(tactica);
-
-            Maquina jugadorMaquina = new Maquina(flotaMaquina, oceanoMaquina, tacticaSeleccionada);
-            Jugador jugadorHumano = new Jugador(flotaHumano, oceanoHumano);
-
-            Batalla nueva = new Batalla(nombreProvisto, jugadorHumano, jugadorMaquina);
-
-            nueva.validarBatalla();
-
-            registrarBatalla(nueva);
-
-            return nueva;
-  
-
+        Oceano oceanoHumano = new Oceano(filas, columnas);
+        Oceano oceanoMaquina = new Oceano(filas, columnas);
+        List<Barco> barcosFlota = generarBarcos(portaaviones, acorazados, cruceros, submarinos, destructores);
+        Flota flotaHumano = new Flota(barcosFlota);
+        Flota flotaMaquina = flotaHumano.crearFlotaEquivalente();
+        Tactica tacticaSeleccionada = buscarTactica(tactica);
+        Maquina jugadorMaquina = new Maquina(flotaMaquina, oceanoMaquina, tacticaSeleccionada);
+        Jugador jugadorHumano = new Jugador(flotaHumano, oceanoHumano);
+        Batalla nueva = new Batalla(nombreProvisto, jugadorHumano, jugadorMaquina);
+        registrarBatalla(nueva);
+        return nueva;
     }
 
     public Batalla iniciarCombate(int idBatalla) throws BatallaNavalException {
         Batalla batalla = buscarBatalla(idBatalla);
         batalla.iniciarCombate();
+        // Avisa a las salas de operaciones para que refresquen el listado y sus estadisticas.
         Fachada.getInstancia().notificar(Fachada.Eventos.BATALLAS_ACTUALIZADAS);
         return batalla;
     }
@@ -121,8 +93,7 @@ public class SistemaBatallas {
         return nombre;
     }
 
-    private List<Barco> generarBarcos(int portaaviones, int acorazados, int cruceros, int submarinos, int destructores)
-            throws BatallaNavalException {
+    private List<Barco> generarBarcos(int portaaviones, int acorazados, int cruceros, int submarinos, int destructores) throws BatallaNavalException {
 
         List<Barco> barcos = new ArrayList<>();
 
@@ -131,10 +102,6 @@ public class SistemaBatallas {
         agregarBarcos(barcos, "Crucero", cruceros);
         agregarBarcos(barcos, "Submarino", submarinos);
         agregarBarcos(barcos, "Destructor", destructores);
-
-        if (barcos.isEmpty()) {
-            throw new BatallaNavalException("La flota debe contener al menos un barco.");
-        }
 
         return barcos;
     }
@@ -159,8 +126,7 @@ public class SistemaBatallas {
                 "No se encontro el tipo de barco: " + nombreTipo);
     }
 
-    private Tactica buscarTactica(String nombre)
-            throws BatallaNavalException {
+    private Tactica buscarTactica(String nombre) throws BatallaNavalException {
 
         if (nombre == null || nombre.isBlank()) {
             throw new BatallaNavalException(
@@ -218,8 +184,12 @@ public class SistemaBatallas {
         return cantidad;
     }
 
+    public int contarBatallasTerminadas() {
+        return contarBatallasGanadas() + contarBatallasPerdidas();
+    }
+
     public double calcularExitoCampania() {
-        int terminadas = contarBatallasGanadas() + contarBatallasPerdidas();
+        int terminadas = contarBatallasTerminadas();
         if (terminadas == 0) {
             return 0.0;
         }

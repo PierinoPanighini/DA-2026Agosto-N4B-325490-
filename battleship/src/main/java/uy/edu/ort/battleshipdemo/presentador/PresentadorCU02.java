@@ -20,9 +20,13 @@ import uy.edu.ort.battleshipdemo.modelo.Cuadrante;
 import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
 import uy.edu.ort.battleshipdemo.modelo.Oceano;
-import uy.edu.ort.battleshipdemo.modelo.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 import uy.edu.ort.battleshipdemo.observador.Observable;
 import uy.edu.ort.battleshipdemo.observador.Observador;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.BarcoDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.InicializarDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TacticaDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TipoBarcoDto;
 
 @RestController
 @SessionScope
@@ -42,8 +46,7 @@ public class PresentadorCU02 implements Observador {
 
     // -------------------------------PARTE 1
     @PostMapping("/configurarBatalla")
-    public Commands panelCU2(@RequestParam(value = "idBatalla", required = false) Integer idBatalla)
-            throws BatallaNavalException {
+    public Commands panelCU2(@RequestParam(value = "idBatalla", required = false) Integer idBatalla) throws BatallaNavalException {
         if (idBatalla != null) {
             Batalla seleccionada = buscarPreparacion(idBatalla);
             salir();
@@ -172,6 +175,7 @@ public class PresentadorCU02 implements Observador {
         }
     }
 
+    // Solicita la colocacion al modelo; el observador envia la actualizacion y el endpoint informa los errores.
     @PostMapping("/ubicarBarco")
     public Commands ubicarBarco(
             @RequestParam("idBarco") int idBarco,
@@ -180,11 +184,8 @@ public class PresentadorCU02 implements Observador {
             @RequestParam("orientacion") Orientacion orientacion) {
         try {
             validarBatallaSeleccionada();
-            Barco barco = enPreparacion.getFlotaJugador().buscarBarco(idBarco);
-            if (barco == null) {
-                throw new BatallaNavalException("No se encontro ese barco en la flota del jugador.");
-            }
-            Cuadrante proa = enPreparacion.getOceanoJugador().getCuadrante(fila, columna);
+            Barco barco = enPreparacion.buscarBarcoJugador(idBarco);
+            Cuadrante proa = enPreparacion.getCuadranteJugador(fila, columna);
             orientacionElegida = orientacion;
             enPreparacion.colocarBarco(barco, proa, orientacion);
             // El evento BARCO_COLOCADO ya actualizo a todos los observadores por SSE.
@@ -249,11 +250,11 @@ public class PresentadorCU02 implements Observador {
     }
 
     private Command listaTacticas() {
-        return new Command("listaTacticas", fachada.listarTacticas());
+        return new Command("listaTacticas", TacticaDto.listaDtos(fachada.listarTacticas()));
     }
 
     private Command listaTiposBarco() {
-        return new Command("listaTiposBarco", fachada.listarTiposBarco());
+        return new Command("listaTiposBarco", TipoBarcoDto.listaDtos(fachada.listarTiposBarco()));
     }
 
     private Command iniciarBatalla() {

@@ -50,18 +50,17 @@
     };
 
     const idBatalla = new URLSearchParams(window.location.search).get('batalla');
-    let numeroRonda = null;
 
     function mostrarMensaje(texto) {
       zonaMensaje.textContent = texto;
     }
 
-    // El tablero solo envía las coordenadas: acá se agregan la batalla y la ronda que se está viendo.
+    // Agrega el identificador de la batalla a las coordenadas del tablero.
     const dispatcherTablero = {
       mapFunctions: (funciones, opciones) => CommandDispatcher.mapFunctions(funciones, opciones),
       submit: (url, coordenadas) => {
         mostrarMensaje('');
-        return CommandDispatcher.submit(url, { ...coordenadas, idBatalla, numeroRonda });
+        return CommandDispatcher.submit(url, { ...coordenadas, idBatalla });
       }
     };
 
@@ -78,7 +77,6 @@
     });
 
     vista.handler('cargarNumeroRonda', (numero) => {
-      numeroRonda = numero;
       document.getElementById('numeroRonda').textContent = numero;
     });
 
