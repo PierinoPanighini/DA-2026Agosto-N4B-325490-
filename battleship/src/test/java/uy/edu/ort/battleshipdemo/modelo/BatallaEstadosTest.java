@@ -102,29 +102,40 @@ class BatallaEstadosTest {
     }
 
     @Test
-    void bajasSeCalculanDesdeLosBarcosYLaListaDevueltaNoAlteraLaFlota() throws Exception {
+    void bajasSeRegistranEnOrdenCronologicoSinDuplicarseYDevuelvenUnaCopia() throws Exception {
         Batalla batalla = crearBatallaEnCombate(5);
         Barco primero = batalla.getFlotaMaquina().getBarcos().get(0);
         Barco segundo = batalla.getFlotaMaquina().getBarcos().get(1);
-        assertTrue(batalla.getFlotaMaquina().listarBajas().isEmpty());
+        assertTrue(batalla.getMaquina().listarBajas().isEmpty());
         assertEquals(0, batalla.getMaquina().contarBajas());
         assertEquals(0, batalla.getJugador().contarBajas());
 
-        batalla.getOceanoMaquina().getCuadrante(2, 2).recibirDisparo();
+        batalla.generarDisparo(2, 2);
         assertEquals(List.of(segundo), batalla.getFlotaMaquina().listarBajas());
         assertEquals(List.of(segundo), batalla.getBajasEnemigas());
         assertEquals(1, batalla.getMaquina().contarBajas());
         assertEquals(1, batalla.getFlotaMaquina().contarBajas());
+        batalla.getMaquina().registrarBaja(segundo);
+        assertEquals(1, batalla.getMaquina().contarBajas());
         batalla.getBajasEnemigas().clear();
         assertEquals(List.of(segundo), batalla.getBajasEnemigas());
 
-        batalla.getOceanoMaquina().getCuadrante(2, 0).recibirDisparo();
-        assertEquals(List.of(primero, segundo), batalla.getBajasEnemigas());
+        batalla.generarDisparo(2, 0);
+        assertEquals(List.of(segundo, primero), batalla.getBajasEnemigas());
         assertEquals(2, batalla.getMaquina().contarBajas());
-        batalla.getOceanoJugador().getCuadrante(5, 0).recibirDisparo();
-        assertEquals(List.of(batalla.getFlotaJugador().getBarcos().get(0)), batalla.getBajasAmigas());
-        assertEquals(1, batalla.getJugador().contarBajas());
-        assertEquals(1, batalla.getFlotaJugador().contarBajas());
+        assertTrue(batalla.fueGanada());
+        assertNull(batalla.getRondas().get(1).getDisparoMaquina());
+    }
+
+    @Test
+    void flotaSoloRegistraBarcosPropiosHundidos() throws Exception {
+        Batalla batalla = crearBatallaEnCombate(5);
+        Flota flota = batalla.getFlotaMaquina();
+        Barco propioSano = flota.getBarcos().get(0);
+        Barco ajeno = batalla.getFlotaJugador().getBarcos().get(0);
+        assertThrows(BatallaNavalException.class, () -> flota.registrarBaja(propioSano));
+        assertThrows(BatallaNavalException.class, () -> flota.registrarBaja(ajeno));
+        assertEquals(0, flota.contarBajas());
     }
 
     @Test

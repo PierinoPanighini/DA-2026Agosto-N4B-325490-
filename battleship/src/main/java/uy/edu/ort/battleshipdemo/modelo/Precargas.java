@@ -79,18 +79,24 @@ public class Precargas {
 
     // Construye directamente el historial de ejemplo antes de asignar su estado final.
     private static void precargarRonda(Batalla batalla, Cuadrante objetivoJugador, boolean respondeMaquina) throws BatallaNavalException {
-        Disparo disparoJugador = disparar(objetivoJugador);
+        Disparo disparoJugador = disparar(objetivoJugador, batalla.getFlotaMaquina());
         Disparo disparoMaquina = null;
         if (respondeMaquina) {
             Cuadrante objetivoMaquina = batalla.getTactica().elegirCuadrante();
-            disparoMaquina = disparar(objetivoMaquina);
+            disparoMaquina = disparar(objetivoMaquina, batalla.getFlotaJugador());
         }
         batalla.getRondas().add(new Ronda(batalla.getRondas().size() + 1, disparoJugador, disparoMaquina));
     }
 
-    private static Disparo disparar(Cuadrante cuadrante) throws BatallaNavalException {
+    // Construye el disparo de ejemplo y registra un eventual hundimiento en la flota alcanzada.
+    private static Disparo disparar(Cuadrante cuadrante, Flota flotaAlcanzada) throws BatallaNavalException {
         ResultadoDisparo resultado = cuadrante.recibirDisparo();
-        return new Disparo(cuadrante, resultado);
+        Disparo disparo = new Disparo(cuadrante, resultado);
+        Barco baja = disparo.getBarcoHundido();
+        if (baja != null) {
+            flotaAlcanzada.registrarBaja(baja);
+        }
+        return disparo;
     }
 
     private static boolean todosHundidos(Flota flota) {

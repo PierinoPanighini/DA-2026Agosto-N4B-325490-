@@ -41,7 +41,11 @@ class PresentadorCU03Test {
     }
 
     private void prepararCombate(int tamanio, int filaHumano) throws Exception {
-        batalla = crearCombate(tamanio, filaHumano);
+        observarBatalla(crearCombate(tamanio, filaHumano));
+    }
+
+    private void observarBatalla(Batalla seleccionada) throws Exception {
+        batalla = seleccionada;
         fachada = mock(Fachada.class);
         when(fachada.buscarBatalla(batalla.getId())).thenReturn(batalla);
         when(fachada.disparar(anyInt(), anyInt(), anyInt())).thenAnswer(invocacion -> {
@@ -93,6 +97,24 @@ class PresentadorCU03Test {
         assertEquals("Ganada", parametro(envio, "cargarEstado"));
         assertEquals("{2}", parametro(envio, "bajasEnemigas"));
         assertNull(batalla.getRondas().get(1).getDisparoMaquina());
+    }
+
+    @Test
+    void vistaMuestraLasBajasEnElOrdenEnQueSeHundieronYNoPorTamanio() throws Exception {
+        SistemaBatallas sistema = new SistemaBatallas();
+        Precargas.cargar(sistema);
+        Batalla combate = sistema.listarBatallas().stream()
+                .filter(b -> b.getLugar().equals("Cabo Norte")).findFirst().orElseThrow();
+        observarBatalla(combate);
+        disparar(5, 1).andExpect(status().isOk());
+        disparar(5, 2).andExpect(status().isOk());
+        assertEquals("{2}", parametro(ultimoEnvio(conexion, 2), "bajasEnemigas"));
+        disparar(2, 3).andExpect(status().isOk());
+        disparar(2, 4).andExpect(status().isOk());
+        Commands envio = ultimoEnvio(conexion, 4);
+        assertEquals("{2} {3}", parametro(envio, "bajasEnemigas"));
+        assertEquals("Ganada", parametro(envio, "cargarEstado"));
+        assertEquals(2, batalla.getMaquina().contarBajas());
     }
 
     @Test

@@ -28,6 +28,14 @@ public class Disparo {
         return cuadrante;
     }
 
+    // Obtiene el barco del cuadrante cuando este disparo produjo su hundimiento.
+    public Barco getBarcoHundido() {
+        if (resultado == ResultadoDisparo.HUNDIDO) {
+            return cuadrante.getBarco();
+        }
+        return null;
+    }
+
     public ResultadoDisparo getResultado() {
         return resultado;
     }

@@ -35,7 +35,12 @@ public class Jugador {
         return oceano.getCuadrante(fila, columna);
     }
 
-    // Consulta en la flota los barcos del jugador que estan hundidos.
+    // Delega en la flota propia el registro de un barco hundido.
+    public void registrarBaja(Barco barco) throws BatallaNavalException {
+        flota.registrarBaja(barco);
+    }
+
+    // Consulta en la flota las bajas propias en orden cronologico.
     public List<Barco> listarBajas() {
         return flota.listarBajas();
     }

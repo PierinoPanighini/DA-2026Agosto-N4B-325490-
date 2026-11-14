@@ -8,19 +8,11 @@ Su nombre y tamaño los conoce su TipoBarco.
  */
 public class Barco {
 
-    public enum Orientacion {
-        VERTICAL,
-        HORIZONTAL
-    }
-
-
+    
     private static int proximoId = 1;
     private final int id;
-
     private TipoBarco tipoBarco;
-
     private Orientacion orientacion;
-
     // Cuadrantes que ocupa en el océano. El primero sería la proa
     private List<Cuadrante> cuadrantes;
 
@@ -29,6 +21,11 @@ public class Barco {
         this.cuadrantes = new ArrayList<>();
         validar();
         this.id = generarId();
+    }
+
+    public enum Orientacion {
+        VERTICAL,
+        HORIZONTAL
     }
 
     // Comprueba que el barco tenga un tipo asignado al construirse.

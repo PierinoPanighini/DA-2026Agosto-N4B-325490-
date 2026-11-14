@@ -7,11 +7,13 @@ import java.util.List;
 public class Flota {
 
     private List<Barco> barcos;
+    private List<Barco> bajas;
 
     public Flota(List<Barco> barcos) throws BatallaNavalException {
         this.barcos = barcos;
         validar();
         this.barcos = new ArrayList<>(barcos);
+        this.bajas = new ArrayList<>();
     }
 
     // Comprueba que la flota tenga barcos y que ninguno sea nulo.
@@ -82,20 +84,31 @@ public class Flota {
         return true;
     }
 
-    // Obtiene las bajas consultando a cada barco si esta hundido.
-    public List<Barco> listarBajas() {
-        List<Barco> bajas = new ArrayList<>();
-        for (Barco barco : barcos) {
-            if (barco.estaHundido()) {
-                bajas.add(barco);
-            }
+    /*
+     * Registra un barco propio que acaba de hundirse al final de la lista de bajas.
+     * Cada registro conserva su orden de llegada y un mismo barco se agrega una vez.
+     * Las condiciones de pertenencia y hundimiento protegen la coherencia de la flota.
+     */
+    public void registrarBaja(Barco barco) throws BatallaNavalException {
+        if (!contieneBarco(barco)) {
+            throw new BatallaNavalException("El barco no pertenece a esta flota.");
         }
-        return bajas;
+        if (!barco.estaHundido()) {
+            throw new BatallaNavalException("Solo se pueden registrar como bajas los barcos hundidos.");
+        }
+        if (!bajas.contains(barco)) {
+            bajas.add(barco);
+        }
     }
 
-    // Devuelve la cantidad de bajas obtenidas de los barcos de esta flota.
+    // Devuelve una copia de las bajas en el orden en que se hundieron los barcos.
+    public List<Barco> listarBajas() {
+        return new ArrayList<>(bajas);
+    }
+
+    // Obtiene la cantidad directamente de la lista de bajas registradas.
     public int contarBajas() {
-        return listarBajas().size();
+        return bajas.size();
     }
 
     public boolean quedoTodaHundida() {
