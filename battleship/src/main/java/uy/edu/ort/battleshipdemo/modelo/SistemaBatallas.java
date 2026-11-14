@@ -45,12 +45,17 @@ public class SistemaBatallas {
 
         Oceano oceanoHumano = new Oceano(filas, columnas);
         Oceano oceanoMaquina = new Oceano(filas, columnas);
+
         List<Barco> barcosFlota = generarBarcos(portaaviones, acorazados, cruceros, submarinos, destructores);
+        
         Flota flotaHumano = new Flota(barcosFlota);
         Flota flotaMaquina = flotaHumano.crearFlotaEquivalente();
+
         Tactica tacticaSeleccionada = buscarTactica(tactica);
+
         Maquina jugadorMaquina = new Maquina(flotaMaquina, oceanoMaquina, tacticaSeleccionada);
         Jugador jugadorHumano = new Jugador(flotaHumano, oceanoHumano);
+        
         Batalla nueva = new Batalla(nombreProvisto, jugadorHumano, jugadorMaquina);
         registrarBatalla(nueva);
         return nueva;

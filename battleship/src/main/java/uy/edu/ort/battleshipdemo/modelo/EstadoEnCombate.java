@@ -35,12 +35,20 @@ public class EstadoEnCombate extends EstadoBatalla{
         Jugador jugador = batalla.getJugador();
 
         Disparo disparoJugador = generarDisparo(maquina.getOceano().getCuadrante(fila, columna));
+        Barco bajaEnemiga = disparoJugador.getBarcoHundido();
+        if (bajaEnemiga != null) {
+            maquina.registrarBaja(bajaEnemiga);
+        }
         Disparo disparoMaquina = null;
         if (maquina.getFlota().quedoTodaHundida()) {
             batalla.setEstado(new EstadoTerminada(batalla));
         } else {
             Cuadrante elegido = maquina.getTactica().elegirCuadrante();
             disparoMaquina = generarDisparo(elegido);
+            Barco bajaAmiga = disparoMaquina.getBarcoHundido();
+            if (bajaAmiga != null) {
+                jugador.registrarBaja(bajaAmiga);
+            }
             if (jugador.getFlota().quedoTodaHundida()) {
                 batalla.setEstado(new EstadoTerminada(batalla));
             }

@@ -152,8 +152,8 @@ class PrecargasTest {
                             impactosPropios, bajasAmigas);
                 }
             }
-            assertEquals(new HashSet<>(bajasEnemigas), new HashSet<>(batalla.getBajasEnemigas()));
-            assertEquals(new HashSet<>(bajasAmigas), new HashSet<>(batalla.getBajasAmigas()));
+            assertEquals(bajasEnemigas, batalla.getBajasEnemigas());
+            assertEquals(bajasAmigas, batalla.getBajasAmigas());
             assertEquals(bajasEnemigas.size(), batalla.getMaquina().contarBajas());
             assertEquals(bajasAmigas.size(), batalla.getJugador().contarBajas());
             verificarMarcas(batalla.getOceanoMaquina(), tirosJugador);
