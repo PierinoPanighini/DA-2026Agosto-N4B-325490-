@@ -6,12 +6,12 @@ public class Ronda {
     private Disparo disparoJugador;
     private Disparo disparoMaquina;
 
-    public Ronda(int numero, Disparo disparoJugador, Disparo disparoMaquina) {
+    public Ronda(int numero, Disparo disparoJugador, Disparo disparoMaquina) throws BatallaNavalException {
         if (numero <= 0) {
-            throw new IllegalArgumentException("El numero de ronda debe ser positivo.");
+            throw new BatallaNavalException("El numero de ronda debe ser positivo.");
         }
         if (disparoJugador == null) {
-            throw new IllegalArgumentException("La ronda debe tener un disparo del jugador.");
+            throw new BatallaNavalException("La ronda debe tener un disparo del jugador.");
         }
 
         this.numero = numero;

@@ -1,6 +1,8 @@
 package uy.edu.ort.battleshipdemo.modelo;
 
 import java.util.List;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Disparo.ResultadoDisparo;
 
 public class Precargas {
 
@@ -71,28 +73,23 @@ public class Precargas {
         ubicar(enemigos.get(1), batalla.getOceanoMaquina(), 5, 1, Orientacion.HORIZONTAL);
     }
 
-    private static void ubicar(Barco barco, Oceano oceano, int fila, int columna, Orientacion orientacion)
-            throws BatallaNavalException {
+    private static void ubicar(Barco barco, Oceano oceano, int fila, int columna, Orientacion orientacion) throws BatallaNavalException {
         oceano.colocarBarco(barco, oceano.getCuadrante(fila, columna), orientacion);
     }
 
     // Construye directamente el historial de ejemplo antes de asignar su estado final.
-    private static void precargarRonda(Batalla batalla, Cuadrante objetivoJugador, boolean respondeMaquina)
-            throws BatallaNavalException {
-        Disparo disparoJugador = disparar(objetivoJugador, batalla.getBajasEnemigas());
+    private static void precargarRonda(Batalla batalla, Cuadrante objetivoJugador, boolean respondeMaquina) throws BatallaNavalException {
+        Disparo disparoJugador = disparar(objetivoJugador);
         Disparo disparoMaquina = null;
         if (respondeMaquina) {
             Cuadrante objetivoMaquina = batalla.getTactica().elegirCuadrante();
-            disparoMaquina = disparar(objetivoMaquina, batalla.getBajasAmigas());
+            disparoMaquina = disparar(objetivoMaquina);
         }
         batalla.getRondas().add(new Ronda(batalla.getRondas().size() + 1, disparoJugador, disparoMaquina));
     }
 
-    private static Disparo disparar(Cuadrante cuadrante, List<Barco> bajas) throws BatallaNavalException {
+    private static Disparo disparar(Cuadrante cuadrante) throws BatallaNavalException {
         ResultadoDisparo resultado = cuadrante.recibirDisparo();
-        if (resultado == ResultadoDisparo.HUNDIDO) {
-            bajas.add(cuadrante.getBarco());
-        }
         return new Disparo(cuadrante, resultado);
     }
 
@@ -114,6 +111,6 @@ public class Precargas {
                 }
             }
         }
-        throw new IllegalStateException("No hay agua libre para construir la batalla perdida de ejemplo.");
+        throw new BatallaNavalException("No hay agua libre para construir la batalla perdida de ejemplo.");
     }
 }

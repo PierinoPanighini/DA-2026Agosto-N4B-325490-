@@ -26,6 +26,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import uy.edu.ort.battleshipdemo.observador.Observable;
 import uy.edu.ort.battleshipdemo.observador.Observador;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.ValorDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.InicializarDto;
 
 @RestController
 @SessionScope
@@ -108,16 +110,16 @@ public class PresentadorCU03 implements Observador {
         return Commands.create(new Command("mensaje", "No puede disparar en sus propias aguas"));
     }
 
+    // Recibe la batalla y las coordenadas y solicita el disparo a la fachada.
     @PostMapping("/disparar")
     public Commands disparar(
             @RequestParam("idBatalla") int idBatalla,
             @RequestParam("coordenadaVertical") int fila,
-            @RequestParam("coordenadaHorizontal") int columna,
-            @RequestParam("numeroRonda") int numeroRondaEsperado) throws BatallaNavalException {
+            @RequestParam("coordenadaHorizontal") int columna) throws BatallaNavalException {
         if (batallaObservada == null || batallaObservada.getId() != idBatalla) {
             throw new BatallaNavalException("Debe abrir esa batalla antes de disparar.");
         }
-        fachada.disparar(idBatalla, fila, columna, numeroRondaEsperado);
+        fachada.disparar(idBatalla, fila, columna);
         // La notificacion de la batalla ya actualizo a todos sus observadores por SSE.
         return Commands.create();
     }
@@ -147,7 +149,7 @@ public class PresentadorCU03 implements Observador {
     private void agregarSituacion(Batalla batalla, Commands comandos) throws BatallaNavalException {
         dibujarAguasPropias(batalla, comandos);
         dibujarAguasEnemigas(batalla, comandos);
-        comandos.add(cargarEstado(new BatallaDto(batalla).getEstado()));
+        comandos.add(cargarEstado(FormatoBatalla.textoEstado(batalla)));
         comandos.add(cargarNumeroRonda(batalla.getNumeroRonda()));
         comandos.add(cargarBajasEnemigas(batalla));
     }

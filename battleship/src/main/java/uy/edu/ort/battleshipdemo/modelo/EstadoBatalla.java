@@ -1,5 +1,6 @@
 package uy.edu.ort.battleshipdemo.modelo;
 import uy.edu.ort.battleshipdemo.modelo.Batalla.Estados;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 
 
 

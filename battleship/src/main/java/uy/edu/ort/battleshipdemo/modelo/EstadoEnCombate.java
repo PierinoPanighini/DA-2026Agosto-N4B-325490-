@@ -1,5 +1,7 @@
 package uy.edu.ort.battleshipdemo.modelo;
 
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Disparo.ResultadoDisparo;
 
 public class EstadoEnCombate extends EstadoBatalla{
 
@@ -33,18 +35,12 @@ public class EstadoEnCombate extends EstadoBatalla{
         Jugador jugador = batalla.getJugador();
 
         Disparo disparoJugador = generarDisparo(maquina.getOceano().getCuadrante(fila, columna));
-        if (disparoJugador.getResultado() == ResultadoDisparo.HUNDIDO) {
-            batalla.getBajasEnemigas().add(disparoJugador.getCuadrante().getBarco());
-        }
         Disparo disparoMaquina = null;
         if (maquina.getFlota().quedoTodaHundida()) {
             batalla.setEstado(new EstadoTerminada(batalla));
         } else {
             Cuadrante elegido = maquina.getTactica().elegirCuadrante();
             disparoMaquina = generarDisparo(elegido);
-            if (disparoMaquina.getResultado() == ResultadoDisparo.HUNDIDO) {
-                batalla.getBajasAmigas().add(disparoMaquina.getCuadrante().getBarco());
-            }
             if (jugador.getFlota().quedoTodaHundida()) {
                 batalla.setEstado(new EstadoTerminada(batalla));
             }

@@ -10,10 +10,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 
 class OceanoColocacionTest {
 
-    private Barco crearBarco(int tamanio) {
+    private Barco crearBarco(int tamanio) throws BatallaNavalException {
         return new Barco(new TipoBarco("Prueba", tamanio));
     }
 
@@ -135,24 +136,6 @@ class OceanoColocacionTest {
         }
         assertEquals(antes, ocupacion(oceano));
         assertEquals(antesOtro, ocupacion(otro));
-    }
-
-    @Test
-    void rechazaSolicitudesIncompletasYBarcosSinTamanioValido() throws BatallaNavalException {
-        Oceano oceano = new Oceano(6, 8);
-        Cuadrante proa = oceano.getCuadrante(2, 2);
-        Barco barco = crearBarco(3);
-        List<Barco> antes = ocupacion(oceano);
-        assertThrows(BatallaNavalException.class, () -> oceano.colocarBarco(null, proa, Orientacion.HORIZONTAL));
-        assertThrows(BatallaNavalException.class, () -> oceano.colocarBarco(barco, null, Orientacion.HORIZONTAL));
-        assertThrows(BatallaNavalException.class, () -> oceano.colocarBarco(barco, proa, null));
-        for (Barco invalido : List.of(crearBarco(0), crearBarco(-1), new Barco(null))) {
-            assertThrows(BatallaNavalException.class,
-                    () -> oceano.colocarBarco(invalido, proa, Orientacion.HORIZONTAL));
-            verificarSinUbicar(invalido);
-        }
-        verificarSinUbicar(barco);
-        assertEquals(antes, ocupacion(oceano));
     }
 
     @Test

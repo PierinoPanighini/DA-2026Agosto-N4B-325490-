@@ -2,9 +2,15 @@ package uy.edu.ort.battleshipdemo.modelo;
 
 import java.util.List;
 
+import uy.edu.ort.battleshipdemo.observador.Observable;
 
 
-public class Fachada {
+
+public class Fachada extends Observable {
+    public enum Eventos {
+        BATALLAS_ACTUALIZADAS
+    }
+
     private static Fachada instanciaFachada;
 
 
@@ -43,6 +49,10 @@ public class Fachada {
         return sistemaBatallas.contarBatallasPerdidas();
     }
 
+    public int contarBatallasTerminadas() {
+        return sistemaBatallas.contarBatallasTerminadas();
+    }
+
     public double calcularExitoCampania() {
         return sistemaBatallas.calcularExitoCampania();
     }
@@ -67,14 +77,13 @@ public class Fachada {
 
 
 
-    //CU03
-    public Batalla disparar(
-        int idBatalla,
-        int fila,
-        int columna,
-        int numeroRondaEsperado) throws BatallaNavalException {
+    public Batalla iniciarCombate(int idBatalla) throws BatallaNavalException {
+        return sistemaBatallas.iniciarCombate(idBatalla);
+    }
 
-        return sistemaBatallas.disparar(idBatalla, fila, columna, numeroRondaEsperado);
+    //CU03
+    public Batalla disparar(int idBatalla, int fila, int columna) throws BatallaNavalException {
+        return sistemaBatallas.disparar(idBatalla, fila, columna);
     }
 
 }

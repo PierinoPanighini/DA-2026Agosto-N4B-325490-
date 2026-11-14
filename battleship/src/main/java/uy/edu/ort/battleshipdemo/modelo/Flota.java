@@ -9,20 +9,26 @@ public class Flota {
     private List<Barco> barcos;
 
     public Flota(List<Barco> barcos) throws BatallaNavalException {
+        this.barcos = barcos;
+        validar();
+        this.barcos = new ArrayList<>(barcos);
+    }
+
+    // Comprueba que la flota tenga barcos y que ninguno sea nulo.
+    private void validar() throws BatallaNavalException {
         if (barcos == null || barcos.isEmpty()) {
             throw new BatallaNavalException("La flota debe contener al menos un barco.");
         }
         for (Barco barco : barcos) {
             if (barco == null) {
-                throw new IllegalArgumentException("La flota no puede tener barcos nulos.");
+                throw new BatallaNavalException("La flota no puede tener barcos nulos.");
             }
         }
-        this.barcos = new ArrayList<>(barcos);
     }
 
-    public void agregarBarco(Barco barco) {
+    public void agregarBarco(Barco barco) throws BatallaNavalException {
         if (barco == null) {
-            throw new IllegalArgumentException("El barco no puede ser nulo.");
+            throw new BatallaNavalException("El barco no puede ser nulo.");
         }
         this.barcos.add(barco);
     }
@@ -33,6 +39,12 @@ public class Flota {
 
 
 
+    // Determina si el barco pertenece a esta flota.
+    public boolean contieneBarco(Barco barco) {
+        return barcos.contains(barco);
+    }
+
+    // Busca un barco por su identificador dentro de esta flota.
     public Barco buscarBarco(int id) {
         for (Barco barco : barcos) {
             if (barco.getId() == id) {
@@ -68,6 +80,22 @@ public class Flota {
             }
         }
         return true;
+    }
+
+    // Obtiene las bajas consultando a cada barco si esta hundido.
+    public List<Barco> listarBajas() {
+        List<Barco> bajas = new ArrayList<>();
+        for (Barco barco : barcos) {
+            if (barco.estaHundido()) {
+                bajas.add(barco);
+            }
+        }
+        return bajas;
+    }
+
+    // Devuelve la cantidad de bajas obtenidas de los barcos de esta flota.
+    public int contarBajas() {
+        return listarBajas().size();
     }
 
     public boolean quedoTodaHundida() {

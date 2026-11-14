@@ -14,16 +14,19 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.annotation.SessionScope;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-
 import uy.edu.ort.battleshipdemo.modelo.Barco;
 import uy.edu.ort.battleshipdemo.modelo.Batalla;
 import uy.edu.ort.battleshipdemo.modelo.Cuadrante;
 import uy.edu.ort.battleshipdemo.modelo.BatallaNavalException;
 import uy.edu.ort.battleshipdemo.modelo.Fachada;
 import uy.edu.ort.battleshipdemo.modelo.Oceano;
-import uy.edu.ort.battleshipdemo.modelo.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
 import uy.edu.ort.battleshipdemo.observador.Observable;
 import uy.edu.ort.battleshipdemo.observador.Observador;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.BarcoDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.InicializarDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TacticaDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TipoBarcoDto;
 
 @RestController
 @SessionScope
@@ -122,7 +125,8 @@ public class PresentadorCU02 implements Observador {
         }
         SseEmitter anterior = emisorDespliegue;
         emisorDespliegue = null;
-        // CU02 y CU03 comparten la conexion de sesion: no cerrar un canal de combate nuevo.
+        // CU02 y CU03 comparten la conexion de sesion: no cerrar un canal de combate
+        // nuevo.
         if (anterior != null && conexion.getConexionSSE() == anterior) {
             conexion.cerrarConexion();
         }
@@ -155,14 +159,23 @@ public class PresentadorCU02 implements Observador {
 
     @Override
     public void actualizar(Object evento, Observable origen) {
-        if (evento == Batalla.Eventos.BARCO_COLOCADO && origen == enPreparacion) {
+        if (origen != enPreparacion) {
+            return;
+        }
+
+        if (evento == Batalla.Eventos.BARCO_COLOCADO) {
             Commands comandos = Commands.create();
             agregarSituacionDespliegue(comandos);
             comandos.add(sonidoColocacion());
             conexion.enviarJSON(comandos);
+        } else if (evento == Batalla.Eventos.COMBATE_INICIADO) {
+            Commands comandos = Commands.create(iniciarBatalla());
+            conexion.enviarJSON(comandos);
+            salir();
         }
     }
 
+    // Solicita la colocacion al modelo; el observador envia la actualizacion y el endpoint informa los errores.
     @PostMapping("/ubicarBarco")
     public Commands ubicarBarco(
             @RequestParam("idBarco") int idBarco,
@@ -171,11 +184,8 @@ public class PresentadorCU02 implements Observador {
             @RequestParam("orientacion") Orientacion orientacion) {
         try {
             validarBatallaSeleccionada();
-            Barco barco = enPreparacion.getFlotaJugador().buscarBarco(idBarco);
-            if (barco == null) {
-                throw new BatallaNavalException("No se encontro ese barco en la flota del jugador.");
-            }
-            Cuadrante proa = enPreparacion.getOceanoJugador().getCuadrante(fila, columna);
+            Barco barco = enPreparacion.buscarBarcoJugador(idBarco);
+            Cuadrante proa = enPreparacion.getCuadranteJugador(fila, columna);
             orientacionElegida = orientacion;
             enPreparacion.colocarBarco(barco, proa, orientacion);
             // El evento BARCO_COLOCADO ya actualizo a todos los observadores por SSE.
@@ -210,10 +220,8 @@ public class PresentadorCU02 implements Observador {
     public Commands entrarBatalla() {
         try {
             validarBatallaSeleccionada();
-            enPreparacion.iniciarCombate();
-            Command comando = iniciarBatalla();
-            salir();
-            return Commands.create(comando);
+            fachada.iniciarCombate(enPreparacion.getId());
+            return Commands.create();
         } catch (BatallaNavalException ex) {
             return Commands.create(mensaje(ex.getMessage()));
         }
@@ -242,23 +250,23 @@ public class PresentadorCU02 implements Observador {
     }
 
     private Command listaTacticas() {
-        return new Command("listaTacticas", fachada.listarTacticas());
+        return new Command("listaTacticas", TacticaDto.listaDtos(fachada.listarTacticas()));
     }
 
     private Command listaTiposBarco() {
-        return new Command("listaTiposBarco", fachada.listarTiposBarco());
+        return new Command("listaTiposBarco", TipoBarcoDto.listaDtos(fachada.listarTiposBarco()));
     }
 
     private Command iniciarBatalla() {
         return new Command("iniciarBatalla", enPreparacion.getId());
     }
 
-
     private Command mostrarBarcoUbicado(Barco barco) {
         return new Command("mostrarBarcoUbicado", new BarcoDto(barco));
     }
 
-    //-------------------------------EXTRAS SONIDOS----------------------------------//
+    // -------------------------------EXTRAS
+    // SONIDOS----------------------------------//
     private Command sonidoColocacion() {
         return new Command("reproducirSonidos", List.of("colocar"));
     }

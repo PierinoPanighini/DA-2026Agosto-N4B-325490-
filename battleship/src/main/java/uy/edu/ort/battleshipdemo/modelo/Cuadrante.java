@@ -1,5 +1,7 @@
 package uy.edu.ort.battleshipdemo.modelo;
 
+import uy.edu.ort.battleshipdemo.modelo.Disparo.ResultadoDisparo;
+
 public class Cuadrante {
 
     private int fila;

@@ -18,6 +18,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import uy.edu.ort.battleshipdemo.config.ManejadorGlobalExcepciones;
 import uy.edu.ort.battleshipdemo.modelo.*;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.BarcoDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TacticaDto;
+import uy.edu.ort.battleshipdemo.presentador.DTOs.TipoBarcoDto;
 
 class PresentadorCU02Test {
     private MockMvc mvc;
@@ -41,6 +45,10 @@ class PresentadorCU02Test {
         when(fachada.prepararBatalla(nullable(String.class), eq("Secuencial"), eq(6), eq(6),
                 eq(0), eq(0), eq(1), eq(1), eq(0))).thenReturn(batalla);
         when(fachada.buscarBatalla(batalla.getId())).thenReturn(batalla);
+        when(fachada.iniciarCombate(batalla.getId())).thenAnswer(invocacion -> {
+            batalla.iniciarCombate();
+            return batalla;
+        });
         conexion = nuevaConexion();
         presentador = new PresentadorCU02(fachada, conexion);
         mvc = MockMvcBuilders.standaloneSetup(presentador)
@@ -67,6 +75,35 @@ class PresentadorCU02Test {
     private void observar() throws Exception {
         presentador.registrarSSE(batalla.getId());
         clearInvocations(conexion);
+    }
+
+    @Test
+    void configuracionEnviaCatalogosComoDtos() throws Exception {
+        List<Tactica> tacticas = List.of(new TacticaSecuencial(), new TacticaEspiral(), new TacticaCazaAtaque());
+        List<TipoBarco> tipos = List.of(new TipoBarco("Portaaviones", 5), new TipoBarco("Destructor", 1));
+        when(fachada.listarTacticas()).thenReturn(tacticas);
+        when(fachada.listarTiposBarco()).thenReturn(tipos);
+
+        Commands comandos = presentador.panelCU2(null);
+        List<?> tacticasEnviadas = (List<?>) parametro(comandos, "listaTacticas");
+        assertEquals(tacticas.size(), tacticasEnviadas.size());
+        for (int i = 0; i < tacticas.size(); i++) {
+            TacticaDto dto = assertInstanceOf(TacticaDto.class, tacticasEnviadas.get(i));
+            assertEquals(tacticas.get(i).getNombre(), dto.getNombre());
+        }
+        List<?> tiposEnviados = (List<?>) parametro(comandos, "listaTiposBarco");
+        assertEquals(tipos.size(), tiposEnviados.size());
+        for (int i = 0; i < tipos.size(); i++) {
+            TipoBarcoDto dto = assertInstanceOf(TipoBarcoDto.class, tiposEnviados.get(i));
+            assertEquals(tipos.get(i).getNombre(), dto.getNombre());
+            assertEquals(tipos.get(i).getTamanio(), dto.getTamanio());
+        }
+
+        mvc.perform(post("/cu02/configurarBatalla"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.commands[0].parametro[0].nombre").value("Secuencial"))
+                .andExpect(jsonPath("$.commands[1].parametro[0].nombre").value("Portaaviones"))
+                .andExpect(jsonPath("$.commands[1].parametro[0].tamanio").value(5));
     }
 
     @Test
@@ -113,8 +150,9 @@ class PresentadorCU02Test {
         assertTrue(batalla.flotaAmigaUbicada());
         assertTrue(batalla.getOceanoMaquina().listarCuadrantesOcupados().isEmpty());
         mvc.perform(post("/cu02/entrarBatalla")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.commands[0].id").value("iniciarBatalla"))
-                .andExpect(jsonPath("$.commands[0].parametro").value(batalla.getId()));
+                .andExpect(jsonPath("$.commands").isEmpty());
+        Commands inicio = ultimoEnvio(conexion, 3);
+        assertEquals(batalla.getId(), parametro(inicio, "iniciarBatalla"));
         assertEquals(Batalla.Estados.EN_COMBATE, batalla.getEstado());
         verify(conexion).cerrarConexion();
     }
@@ -238,6 +276,49 @@ class PresentadorCU02Test {
         ubicar(pequeno.getId(), 4, 0, "VERTICAL");
         presentador.entrarBatalla();
         assertThrows(BatallaNavalException.class, () -> presentador.registrarSSE(batalla.getId()));
+    }
+
+    @Test
+    void iniciarCombateAvisaUnaVezACadaSesionYQuitaLasSuscripciones() throws Exception {
+        observar();
+        ConexionNavegador otraConexion = nuevaConexion();
+        PresentadorCU02 otro = new PresentadorCU02(fachada, otraConexion);
+        otro.registrarSSE(batalla.getId());
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        ubicar(pequeno.getId(), 4, 0, "VERTICAL");
+        clearInvocations(conexion, otraConexion);
+
+        mvc.perform(post("/cu02/entrarBatalla")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.commands").isEmpty());
+        assertEquals(batalla.getId(), parametro(ultimoEnvio(conexion, 1), "iniciarBatalla"));
+        assertEquals(batalla.getId(), parametro(ultimoEnvio(otraConexion, 1), "iniciarBatalla"));
+        verify(conexion).cerrarConexion();
+        verify(otraConexion).cerrarConexion();
+
+        clearInvocations(conexion, otraConexion);
+        batalla.notificar(Batalla.Eventos.COMBATE_INICIADO);
+        verifyNoInteractions(conexion, otraConexion);
+    }
+
+    @Test
+    void avisoDeOtraBatallaNoRedirigeNiCierraElDespliegueActual() throws Exception {
+        observar();
+        Batalla ajena = mock(Batalla.class);
+        presentador.actualizar(Batalla.Eventos.COMBATE_INICIADO, ajena);
+        verifyNoInteractions(conexion);
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        ultimoEnvio(conexion, 1);
+    }
+
+    @Test
+    void iniciarConBarcosPendientesMuestraErrorYConservaLaSuscripcion() throws Exception {
+        observar();
+        mvc.perform(post("/cu02/entrarBatalla")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.commands[0].id").value("mensaje"));
+        assertTrue(batalla.estaEnPreparacion());
+        verifyNoInteractions(conexion);
+        ubicar(grande.getId(), 1, 1, "HORIZONTAL");
+        ultimoEnvio(conexion, 1);
     }
 
     private ResultActions crearPreparacion() throws Exception {

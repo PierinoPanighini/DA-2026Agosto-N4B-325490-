@@ -13,6 +13,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
 import org.junit.jupiter.api.Test;
+import uy.edu.ort.battleshipdemo.modelo.Barco.Orientacion;
+import uy.edu.ort.battleshipdemo.modelo.Disparo.ResultadoDisparo;
 
 class PrecargasTest {
 
@@ -97,7 +99,7 @@ class PrecargasTest {
             assertEquals(!preparacion, barco.estaUbicado());
             if (preparacion) continue;
             assertEquals(barco.getTamanio(), barco.getCuadrantes().size());
-            Cuadrante proa = barco.getCuadrantes().get(0);
+            Cuadrante proa = barco.getProa();
             for (int i = 0; i < barco.getCuadrantes().size(); i++) {
                 Cuadrante cuadrante = barco.getCuadrantes().get(i);
                 int fila = proa.getFila() + (barco.getOrientacion() == Orientacion.VERTICAL ? i : 0);
@@ -150,8 +152,10 @@ class PrecargasTest {
                             impactosPropios, bajasAmigas);
                 }
             }
-            assertEquals(bajasEnemigas, batalla.getBajasEnemigas());
-            assertEquals(bajasAmigas, batalla.getBajasAmigas());
+            assertEquals(new HashSet<>(bajasEnemigas), new HashSet<>(batalla.getBajasEnemigas()));
+            assertEquals(new HashSet<>(bajasAmigas), new HashSet<>(batalla.getBajasAmigas()));
+            assertEquals(bajasEnemigas.size(), batalla.getMaquina().contarBajas());
+            assertEquals(bajasAmigas.size(), batalla.getJugador().contarBajas());
             verificarMarcas(batalla.getOceanoMaquina(), tirosJugador);
             verificarMarcas(batalla.getOceanoJugador(), tirosMaquina);
             for (Barco barco : batalla.getFlotaJugador().getBarcos()) {
@@ -216,9 +220,13 @@ class PrecargasTest {
     void constructorDeFlotaCopiaLaListaYLaEquivalenteNoComparteBarcos() throws Exception {
         assertThrows(BatallaNavalException.class, () -> new Flota(List.of()));
         assertThrows(BatallaNavalException.class, () -> new Flota(null));
+        List<Barco> barcosNulos = new ArrayList<>();
+        barcosNulos.add(null);
+        assertThrows(BatallaNavalException.class, () -> new Flota(barcosNulos));
         Barco barco = new Barco(new TipoBarco("Submarino", 2));
         List<Barco> entrada = new ArrayList<>(List.of(barco));
         Flota original = new Flota(entrada);
+        assertThrows(BatallaNavalException.class, () -> original.agregarBarco(null));
         entrada.clear();
         assertEquals(1, original.getBarcos().size());
         Oceano oceano = new Oceano(6, 6);

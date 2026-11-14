@@ -80,6 +80,7 @@
 
   <script type="module">
     import CommandDispatcher from '/CommandDispatcher.js';
+    import SSECommandDispatcher from '/SSECommandDispatcher.js';
 
 
     const zonaMensaje = document.getElementById('mensaje');
@@ -119,7 +120,7 @@
     });
 
     const vista = CommandDispatcher.registerView('Sala', {
-      urlInicio: '/cu01/inicializar',
+      urlCierre: '/cu01/finCasoUso',
       onException: mostrarMensaje,
       onError: () => mostrarMensaje('No se pudo completar la acción.')
     });
@@ -140,6 +141,20 @@
     });
 
     CommandDispatcher.startView(vista);
+
+    let conexionSSE;
+    function conectarSala() {
+      conexionSSE = new SSECommandDispatcher(
+        '/cu01/registrarSSE',
+        CommandDispatcher,
+        () => mostrarMensaje('Se perdió la conexión con la sala. Recargá la página para reconectar.')
+      );
+    }
+    conectarSala();
+    window.addEventListener('pagehide', () => conexionSSE.disconnect());
+    window.addEventListener('pageshow', evento => {
+      if (evento.persisted) conectarSala();
+    });
   </script>
   <script type="module">
     //-------------------------------EXTRAS SONIDOS----------------------------------//
